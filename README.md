@@ -59,7 +59,7 @@
 
 ### `search_listings`
 
-- **What it does:**
+- **What it does:** This 
 - **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
 - **Returns:**
 - **When it has nothing:**
