@@ -1,17 +1,16 @@
 """
-The three FitFindr tools.
+The FitFindr tools.
 
 Each one is a standalone function you can call and test on its own, before any
-of them are wired into the loop. Build and test them one at a time — three
-untested tools joined by a loop is one problem that looks like six, because you
-can't tell which layer is lying to you.
+of them are wired into the loop. Build and test them one at a time so a problem
+in one tool does not get hidden by the orchestration.
 
-    search_listings(description, size, max_price)  → list[dict]
-    suggest_outfit(new_item, wardrobe)             → str
-    create_fit_card(outfit, new_item)              → str
+    search_listings(description, size, max_price)                  → list[dict]
+    suggest_outfit(new_item, wardrobe)                              → str
+    create_fit_card(outfit, new_item)                               → str
+    suggestions_tool(new_item, outfit, search_results, max_price)  → dict[str, list[dict]]
 
-All three are stubs right now. They run and they do nothing — that's the
-starting position and it's deliberate.
+Each tool can be tested on its own before being wired into the loop.
 
 ⚠️ Before you write any of them, fill in the **Tool Inventory** section of your
 README (Milestone 2). Four lines per tool: what it does, each input with its
@@ -296,3 +295,169 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         system="You write concise, distinctive thrift-fashion fit card captions.",
         cache=False,
     )
+
+
+# ── Tool 4: suggestions_tool ──────────────────────────────────────────────────
+
+def suggestions_tool(
+    new_item: dict | None,
+    outfit: str,
+    search_results: list[dict] | None = None,
+    max_price: float | None = None,
+) -> dict[str, list[dict]]:
+    """
+    Recommend similar listings and pieces that could complete the outfit.
+
+    The tool searches the mock listings loaded by load_listings(); it does not
+    call the model. Similar-item recommendations are ranked using the selected
+    listing's brand, category, style tags, and title/description keywords.
+    Their prices must be within 25% of the selected item's price, and they must
+    also be at or below max_price when the user's search provided a price cap.
+    The selected listing and listings already returned by search_listings are
+    excluded from similar-item recommendations. Outfit-completion picks may
+    include other original search results so the inventory can supply five.
+
+    Outfit-completion recommendations are ranked by how well their listing
+    details overlap with the outfit suggestion. It fills any remaining slots
+    with random listings so that it returns five items whenever the inventory
+    contains at least five listings other than the selected item. These
+    fallback listings do not populate the similar-item results.
+
+    Args:
+        new_item:      The selected listing dict, or None when there is no
+                       selected item. Expected listing fields include id,
+                       title, description, category, style_tags, price, colors,
+                       and brand.
+        outfit:        The outfit suggestion string from suggest_outfit().
+        search_results: Listings returned for the user's original search.
+                       These are excluded so recommendations are new options.
+        max_price:     The optional maximum price parsed from the user's query.
+                       Similar-item suggestions never exceed this ceiling.
+
+    Returns:
+        A dictionary with two list values:
+        - "suggested_items_based_on_search": similar listing dicts, best match
+          first, at most five.
+        - "suggested_items_to_help_make_your_outfit": five complementary
+          listing dicts when at least five eligible listings exist, ranked
+          outfit matches first and filled with random listings as needed.
+
+        Each listing dict has the same fields returned by load_listings().
+
+    When it has nothing:
+        If new_item is None, the search-based list is empty. If fewer than five
+        outfit completion candidates match, the list is filled with random
+        listings. It contains five items when at least five eligible inventory
+        listings are available.
+
+    Test it from a terminal (this command is intentionally provided but not
+    run here):
+        python -c "from tools import suggestions_tool; from utils.data_loader import load_listings; listings=load_listings(); print(suggestions_tool(listings[0], 'Pair the jeans with a white tank top and chunky sneakers.', listings, 50))"
+    """
+    import random
+    import re
+
+    listings = load_listings()
+    selected = new_item or {}
+    prior_results = search_results or []
+
+    excluded_ids = {
+        listing.get("id")
+        for listing in [selected, *prior_results]
+        if listing.get("id") is not None
+    }
+    selected_id = selected.get("id")
+
+    def words(value: str | None) -> set[str]:
+        if not value:
+            return set()
+        return {
+            token
+            for token in re.findall(r"[a-z0-9]+", value.lower())
+            if len(token) > 1
+            and token not in {
+                "the", "and", "with", "for", "from", "this", "that",
+                "your", "pair", "wear", "style", "outfit", "look",
+            }
+        }
+
+    def listing_words(listing: dict) -> set[str]:
+        text = " ".join(
+            [
+                listing.get("title", ""),
+                listing.get("description", ""),
+                listing.get("category", ""),
+                listing.get("brand") or "",
+                " ".join(listing.get("style_tags", [])),
+                " ".join(listing.get("colors", [])),
+            ]
+        )
+        return words(text)
+
+    similar_items: list[tuple[int, dict]] = []
+    selected_price = selected.get("price")
+    if selected and selected_price is not None:
+        selected_price = float(selected_price)
+        lower_price = selected_price * 0.75
+        upper_price = selected_price * 1.25
+        if max_price is not None:
+            upper_price = min(upper_price, float(max_price))
+
+        reference_words = listing_words(selected)
+        reference_tags = set(selected.get("style_tags", []))
+        reference_brand = (selected.get("brand") or "").casefold()
+        reference_category = (selected.get("category") or "").casefold()
+
+        for listing in listings:
+            if listing.get("id") in excluded_ids:
+                continue
+            price = float(listing.get("price", float("inf")))
+            if not lower_price <= price <= upper_price:
+                continue
+
+            score = 2 * len(reference_tags & set(listing.get("style_tags", [])))
+            candidate_brand = (listing.get("brand") or "").casefold()
+            if reference_brand and candidate_brand == reference_brand:
+                score += 5
+            if reference_category and (
+                listing.get("category") or ""
+            ).casefold() == reference_category:
+                score += 3
+            score += len(reference_words & listing_words(listing))
+            if score:
+                similar_items.append((score, listing))
+
+    similar_items.sort(
+        key=lambda item: (-item[0], float(item[1].get("price", 0.0)))
+    )
+
+    outfit_tokens = words(outfit)
+    completion_items: list[tuple[int, dict]] = []
+    for listing in listings:
+        if listing.get("id") == selected_id:
+            continue
+        score = len(outfit_tokens & listing_words(listing))
+        if score:
+            completion_items.append((score, listing))
+
+    completion_items.sort(
+        key=lambda item: (-item[0], float(item[1].get("price", 0.0)))
+    )
+    outfit_suggestions = [item for _, item in completion_items[:5]]
+    suggested_ids = {listing.get("id") for listing in outfit_suggestions}
+    fallback_pool = [
+        listing
+        for listing in listings
+        if listing.get("id") != selected_id
+        and listing.get("id") not in suggested_ids
+    ]
+    fallback_count = min(5 - len(outfit_suggestions), len(fallback_pool))
+    if fallback_count > 0:
+        outfit_suggestions.extend(random.sample(fallback_pool, k=fallback_count))
+
+    return {
+        "suggested_items_based_on_search": [
+            listing for _, listing in similar_items[:5]
+        ],
+        "suggested_items_to_help_make_your_outfit": outfit_suggestions,
+    }

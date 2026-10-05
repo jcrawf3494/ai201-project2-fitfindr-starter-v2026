@@ -13,8 +13,7 @@
 > python app.py ask 'vintage graphic tee under $30'
 > ```
 >
-> All three tools are stubs, so that last command will do nothing useful yet.
-> That's the starting position.
+> The tool implementations and planning loop are built incrementally below.
 >
 > **The rest of this file is your submission.** Fill it in as you go.
 
@@ -47,15 +46,6 @@
 
 ## Tool Inventory
 
-<!-- Four lines per tool. This is worth 2 points and it's the single most
-     common place students lose them.
-
-     "Returns a list" earns NOTHING. The description has to say what is IN
-     the list.
-
-     The empty case isn't optional either — it's the thing your loop branches
-     on, and if you don't decide it here you'll discover it as a crash in
-     Milestone 5. -->
 
 ### `search_listings`
 
@@ -118,6 +108,31 @@
 
 ---
 
+STRETCH FEATURE TOOL
+
+
+
+- **What it does:**
+  - `suggestions_tool` looks through the listings after a fit card is created and returns two groups of listing recommendations.
+  - `suggested_items_based_on_search` contains up to five listings similar to the selected listing, ranked using brand, category, style tags, and descriptive keywords. They exclude listings already returned by the original search and must be within 25% of the selected item's price. If the query included a maximum price, a suggestion must also be at or below that ceiling.
+  - `suggested_items_to_help_make_your_outfit` contains five listings whenever at least five other inventory items are available. Outfit-related matches are ranked first, and random inventory listings fill any remaining slots.
+- **Inputs:**
+  - `new_item: dict | None` — the selected listing from the search, used as the anchor for similar-item recommendations.
+  - `outfit: str` — the suggestion returned by `suggest_outfit`, used to look for complementary listings.
+  - `search_results: list[dict] | None` — the original search results, excluded from recommendations so the user sees new listings.
+  - `max_price: float | None` — the optional price ceiling extracted from the query; it also limits similar-item suggestions.
+- **Returns:**
+  - A dictionary with two list fields:
+    - `suggested_items_based_on_search`: listing dictionaries ranked by similarity to the selected listing.
+    - `suggested_items_to_help_make_your_outfit`: five listing dictionaries when at least five eligible inventory items exist, with outfit matches ranked first and random fallback listings filling remaining slots.
+  - Each listing dictionary has the fields from the listings dataset: `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, and `platform`.
+- **When it has nothing:**
+  - If `new_item` is missing, `suggested_items_based_on_search` is an empty list. The outfit-completion list is padded with random inventory listings to five items when possible, and contains fewer only when the inventory has fewer than five eligible items.
+- **Test command** (provided for you to run; not run as part of this change):
+  ```powershell
+  python -c "from tools import suggestions_tool; from utils.data_loader import load_listings; listings=load_listings(); print(suggestions_tool(listings[0], 'Pair the jeans with a white tank top and chunky sneakers.', listings, 50))"
+  ```
+
 ## Planning Loop
 
 <!-- Your branch rule, stated as a rule — the condition AND both paths — plus
@@ -146,7 +161,7 @@
 **How the query is parsed:** 
 `agent.py::_parse_query` uses regular expressions to extract a size after `size` (for example, `size M`) and a price ceiling after phrases such as `under $30`, `up to $30`, or `max_price=30`. The remaining text is passed as the description to `search_listings`.
 
-**What moves through the session:** `run_agent` stores the parsed filters and all search results in the session. If results are found, it selects the first listing and passes it with the supplied wardrobe to `suggest_outfit`; that suggestion and listing then go to `create_fit_card`. An empty search result sets an actionable error and stops before either later tool is called.
+**What moves through the session:** `run_agent` stores the parsed filters and all search results in the session. If results are found, it selects the first listing and passes it with the supplied wardrobe to `suggest_outfit`; that suggestion and listing then go to `create_fit_card`. After the fit card, `suggestions_tool` stores similar listings and outfit-completion listings in the session. An empty search result sets an actionable error and stops before the later tools are called.
 ---
 
 ## Sample Run
@@ -219,6 +234,21 @@ Which of these vibes are you feeling most today?
 
 2 model calls this session, 939 prompt + 469 output tokens
 
+
+STRETCH FEATURE TEST ON SAME PROMPT 
+  Suggested items based on your search:
+    - Oversized Crewneck Sweatshirt — Vintage Navy — $20.0
+    - Henley Long Sleeve — Washed Burgundy — $16.0
+    - Vintage Polo Shirt — Forest Green — $18.0
+    - Graphic Tee — 2003 Tour Bootleg Style — $24.0
+    - Vintage Band Tee — Faded Grey — $19.0
+  Suggested items to help make your outfit:
+    - Straight Leg Black Jeans — Faded — $30.0
+    - Vintage Levi's 501 Jeans — Medium Wash — $38.0
+    - Baggy Carpenter Jeans — Dark Wash — $36.0
+    - Vintage Linen Blazer — Cream — $38.0
+    - Denim Jacket — Light Wash, Cropped — $42.0
+
 This is a manual pass that will fail: 
 
 python app.py ask 'I want a puppy'                
@@ -228,7 +258,7 @@ python app.py ask 'I want a puppy'
 0 model calls this session
 ```
 
-**The three tools, tested one at a time**
+**The tools, tested one at a time**
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
@@ -237,6 +267,8 @@ $ python -c "from tools import search_listings; print(search_listings('graphic t
 
 ```
 $ python -c "from tools import suggest_outfit; ..."
+
+python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
 
 Here are two outfit combinations featuring your amazing new Vintage Levi's 501 Jeans and pieces from your wardrobe:
 
@@ -261,6 +293,8 @@ Here are two outfit combinations featuring your amazing new Vintage Levi's 501 J
 * **Why it works:** Double denim is timeless, especially when mixing washes—the vintage black denim jacket paired with the blue Levi's 501s creates great contrast. Cinching the jeans with the brown leather belt adds a nice grounding earth tone, and the black combat boots and cropped zip hoodie give the whole outfit an edgy, grounded finish.
 
 $ python -c "from tools import create_fit_card; ..."
+
+python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
 
 These perfectly faded Levi's have that ideal broken-in feel right out of the box. I've been living in them with fresh white sneakers for an effortless, everyday streetwear look. Grab this medium-wash staple for $38.0 on depop before I change my mind.
 ---
@@ -292,6 +326,44 @@ It gave me a walk through of how it would go about testing the criteria that I i
 - *What I changed:*
 I went back and changed some of the criteria to be a little clearer so that it was easier to identify what was being tested. Not to make it so that the criteria always passed but rather to make it so that the criteria was actually testable and had a clear path to testing. 
 
+STRETCH FEATURE
+
+- **What it does:**
+  - `suggestions_tool` looks through the listings after a fit card is created and returns two groups of listing recommendations.
+  - `suggested_items_based_on_search` contains up to five listings similar to the selected listing, ranked using brand, category, style tags, and descriptive keywords. They exclude listings already returned by the original search and must be within 25% of the selected item's price. If the query included a maximum price, a suggestion must also be at or below that ceiling.
+  - `suggested_items_to_help_make_your_outfit` contains five listings whenever at least five other inventory items are available. Outfit-related matches are ranked first, and random inventory listings fill any remaining slots.
+- **Inputs:**
+  - `new_item: dict | None` — the selected listing from the search, used as the anchor for similar-item recommendations.
+  - `outfit: str` — the suggestion returned by `suggest_outfit`, used to look for complementary listings.
+  - `search_results: list[dict] | None` — the original search results, excluded from recommendations so the user sees new listings.
+  - `max_price: float | None` — the optional price ceiling extracted from the query; it also limits similar-item suggestions.
+- **Returns:**
+  - A dictionary with two list fields:
+    - `suggested_items_based_on_search`: listing dictionaries ranked by similarity to the selected listing.
+    - `suggested_items_to_help_make_your_outfit`: five listing dictionaries when at least five eligible inventory items exist, with outfit matches ranked first and random fallback listings filling remaining slots.
+  - Each listing dictionary has the fields from the listings dataset: `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, and `platform`.
+- **When it has nothing:**
+  - If `new_item` is missing, `suggested_items_based_on_search` is an empty list. The outfit-completion list is padded with random inventory listings to five items when possible, and contains fewer only when the inventory has fewer than five eligible items.
+- **Test command** (provided for you to run; not run as part of this change):
+  ```powershell
+  python -c "from tools import suggestions_tool; from utils.data_loader import load_listings; listings=load_listings(); print(suggestions_tool(listings[0], 'Pair the jeans with a white tank top and chunky sneakers.', listings, 5))"
+
+  python -c "from tools import suggestions_tool; from utils.data_loader import load_listings; listings=load_listings(); print(suggestions_tool(listings[0], 'Pair the jeans with a white tank top and chunky sneakers.', listings, 5))"
+{'suggested_items_based_on_search': [], 'suggested_items_to_help_make_your_outfit': [{'id': 'lst_035', 'title': 'Low-Top Canvas Sneakers — Off-White', 'description': 'Classic low-top canvas sneakers in off-white. Very minimal. Some light yellowing on the sole edges from age. Size 9.', 'category': 'shoes', 'style_tags': ['classic', 'minimal', 'streetwear', 'basics'], 'size': 'US 9', 'condition': 'good', 'price': 20.0, 'colors': ['off-white', 'cream'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_023', 'title': 'Crochet Halter Top — Cream', 'description': 'Handmade-looking crochet halter. Ties at the neck and back. Perfect for layering over a tank in summer.', 'category': 'tops', 'style_tags': ['cottagecore', 'boho', 'crochet', 'summer'], 'size': 'S/M', 'condition': 'excellent', 'price': 22.0, 'colors': ['cream', 'off-white'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_019', 'title': 'Platform Sneakers — White Chunky Sole', 'description': 'White chunky platform sneakers. Very late 90s / early 2000s energy. Velcro straps. True tosize. Some sole yellowing.', 'category': 'shoes', 'style_tags': ['y2k', 'platform', '90s', 'streetwear'], 'size': 'US 8', 'condition': 'good', 'price': 48.0, 'colors': ['white'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}]}
+
+   Suggested items based on your search:
+    - Oversized Crewneck Sweatshirt — Vintage Navy — $20.0
+    - Henley Long Sleeve — Washed Burgundy — $16.0
+    - Vintage Polo Shirt — Forest Green — $18.0
+    - Graphic Tee — 2003 Tour Bootleg Style — $24.0
+    - Vintage Band Tee — Faded Grey — $19.0
+  Suggested items to help make your outfit:
+    - Straight Leg Black Jeans — Faded — $30.0
+    - Vintage Levi's 501 Jeans — Medium Wash — $38.0
+    - Baggy Carpenter Jeans — Dark Wash — $36.0
+    - Vintage Linen Blazer — Cream — $38.0
+    - Denim Jacket — Light Wash, Cropped — $42.0
+  ```
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -437,10 +509,10 @@ full. -->
        [ ] criteria.md has five numbered criteria, each with a target
        [ ] Each criterion has a reason underneath it
        [ ] All five unit 3 sections above have real content
-       [ ] Tool Inventory: all three tools, inputs WITH TYPES, a specific
+       [ ] Tool Inventory: all four tools, inputs WITH TYPES, a specific
            return value, and the empty case
        [ ] Planning Loop names the branch rule and agent.py::run_agent
-       [ ] Sample Run: one full query plus the three per-tool tests, as text
+       [ ] Sample Run: one full query plus the four per-tool tests, as text
        [ ] At least four new commits
        [ ] Repository URL submitted — WRITE IT DOWN, you submit the same one
            next unit

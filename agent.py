@@ -4,11 +4,11 @@ The FitFindr planning loop.
 This is the file that makes FitFindr an agent rather than a script. It decides
 which tool to run next based on what the last one returned.
 
-If your loop calls all three tools no matter what comes back, you have a list
+If your loop calls every tool no matter what comes back, you have a list
 of function calls. A loop looks at the last result before it picks the next
 step. **That branch is the graded part of this unit.**
 
-Build and test your three tools in `tools.py` first. Then come here.
+Build and test the tools in `tools.py` first. Then come here.
 
     python agent.py          runs both example paths below
 """
@@ -17,7 +17,12 @@ import re
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from tools import (
+    search_listings,
+    suggest_outfit,
+    create_fit_card,
+    suggestions_tool,
+)
 from generate import ModelUnavailable
 
 
@@ -45,6 +50,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "wardrobe": wardrobe,        # the user's wardrobe
         "outfit_suggestion": None,   # what suggest_outfit returned
         "fit_card": None,            # what create_fit_card returned
+        "suggestions": None,         # similar listings and outfit-completion picks
         "error": None,               # set when the run ended early
     }
 
@@ -133,7 +139,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
       7. Call create_fit_card() with the outfit and the item.
          Put the result in session["fit_card"].
 
-      8. Return the session.
+      8. Call suggestions_tool() after the fit card, passing the selected item,
+         outfit, original search results, and optional max_price. Store the two
+         suggestion groups in session["suggestions"].
+
+      9. Return the session.
 
     ─────────────────────────────────────────────────────────────────────────
     IN UNIT 4 you come back and add two things:
@@ -184,6 +194,12 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             session["outfit_suggestion"],
             selected_item,
         )
+        session["suggestions"] = suggestions_tool(
+            selected_item,
+            session["outfit_suggestion"],
+            search_results=results,
+            max_price=parsed["max_price"],
+        )
         return session
 
 
@@ -199,6 +215,12 @@ def _show(session: dict) -> None:
     print(f"  found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
     print(f"  outfit:   {session['outfit_suggestion']}")
     print(f"  fit card: {session['fit_card']}")
+    suggestions = session["suggestions"] or {}
+    print(f"  similar items: {suggestions.get('suggested_items_based_on_search', [])}")
+    print(
+        "  outfit additions: "
+        f"{suggestions.get('suggested_items_to_help_make_your_outfit', [])}"
+    )
 
 
 if __name__ == "__main__":

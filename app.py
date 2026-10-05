@@ -123,6 +123,16 @@ def _ask_one(query, wardrobe, use_trace):
         print(f"  Outfit:   {session['outfit_suggestion']}")
         print()
         print(f"  Fit card: {session['fit_card']}")
+        suggestions = session.get("suggestions") or {}
+        print()
+        print("  Suggested items based on your search:")
+        for suggestion in suggestions.get("suggested_items_based_on_search", []):
+            print(f"    - {suggestion.get('title')} — ${suggestion.get('price')}")
+        print("  Suggested items to help make your outfit:")
+        for suggestion in suggestions.get(
+            "suggested_items_to_help_make_your_outfit", []
+        ):
+            print(f"    - {suggestion.get('title')} — ${suggestion.get('price')}")
     print()
 
     if use_trace:
