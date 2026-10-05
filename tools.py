@@ -78,8 +78,78 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    import re
+
+    def _size_tokens(value: str | None) -> set[str]:
+        if not value:
+            return set()
+        cleaned = re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
+        tokens: set[str] = set()
+        if not cleaned:
+            return tokens
+        tokens.add(cleaned.replace(" ", ""))
+        for token in cleaned.split():
+            tokens.add(token)
+        return tokens
+
+    def _text_tokens(value: str | None) -> list[str]:
+        if not value:
+            return []
+        return [
+            token
+            for token in re.findall(r"[a-z0-9]+", str(value).lower())
+            if token not in {"a", "an", "the", "for", "with", "and", "or", "of", "on", "in", "to", "from", "it", "is", "at", "as"}
+        ]
+
+    def _matches_size(requested_size: str | None, listing_size: str | None) -> bool:
+        if requested_size is None:
+            return True
+        requested_tokens = _size_tokens(requested_size)
+        listing_tokens = _size_tokens(listing_size)
+        if not requested_tokens or not listing_tokens:
+            return False
+        return bool(requested_tokens & listing_tokens)
+
+    listings = load_listings()
+    query_tokens = [
+        token
+        for token in _text_tokens(description)
+        if token not in {"a", "an", "the", "for", "with", "and", "or", "of", "on", "in", "to", "from", "it", "is", "at", "as", "not", "no", "item", "items", "piece", "pieces", "look", "style", "fit"}
+        and len(token) > 1
+    ]
+
+    matches: list[tuple[int, dict]] = []
+    for listing in listings:
+        if max_price is not None and float(listing.get("price", float("inf"))) > float(max_price):
+            continue
+        if not _matches_size(size, listing.get("size")):
+            continue
+
+        searchable = " ".join(
+            [
+                listing.get("title", ""),
+                listing.get("description", ""),
+                listing.get("category", ""),
+                " ".join(listing.get("style_tags", [])),
+                " ".join(listing.get("colors", [])),
+                listing.get("brand") or "",
+            ]
+        )
+        score = 0
+        if query_tokens:
+            counts = {}
+            for token in _text_tokens(searchable):
+                counts[token] = counts.get(token, 0) + 1
+            score = sum(counts.get(token, 0) for token in query_tokens)
+        else:
+            score = 0
+
+        if score > 0:
+            matches.append((score, listing))
+
+    matches.sort(key=lambda item: (-item[0], item[1].get("price", 0.0)))
+    results = [listing for _, listing in matches[: config.SEARCH_RESULT_LIMIT]]
+    return results
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
