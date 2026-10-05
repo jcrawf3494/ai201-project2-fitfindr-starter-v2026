@@ -182,8 +182,49 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    item = new_item or {}
+    wardrobe_items = wardrobe.get("items", []) if isinstance(wardrobe, dict) else []
+
+    item_title = item.get("title") or item.get("name") or "this thrifted item"
+    item_category = item.get("category") or "unknown category"
+    item_colors = ", ".join(item.get("colors", [])) or "no color listed"
+    item_brand = item.get("brand") or "no brand listed"
+    item_price = item.get("price")
+    item_desc = item.get("description") or ""
+
+    if not wardrobe_items:
+        prompt = (
+            "You are a personal stylist. Suggest 1-2 outfits for a thrifted item.\n\n"
+            f"New item: {item_title}\n"
+            f"Category: {item_category}\n"
+            f"Colors: {item_colors}\n"
+            f"Brand: {item_brand}\n"
+            f"Price: ${item_price if item_price is not None else 'not listed'}\n"
+            f"Description: {item_desc}\n\n"
+            "Give practical styling advice using general wardrobe principles. Mention the new item by name and keep it to 2 short outfit ideas with a little detail."
+        )
+    else:
+        wardrobe_lines = []
+        for wardrobe_item in wardrobe_items:
+            name = wardrobe_item.get("name") or "Unnamed item"
+            category = wardrobe_item.get("category") or "unknown category"
+            colors = ", ".join(wardrobe_item.get("colors", [])) or "no color listed"
+            tags = ", ".join(wardrobe_item.get("style_tags", [])) or "no style tags"
+            wardrobe_lines.append(f"- {name} ({category}; colors: {colors}; style tags: {tags})")
+
+        prompt = (
+            "You are a personal stylist. Suggest 1-2 outfit combinations using the user's wardrobe and the new thrifted item.\n\n"
+            f"New item: {item_title}\n"
+            f"Category: {item_category}\n"
+            f"Colors: {item_colors}\n"
+            f"Brand: {item_brand}\n"
+            f"Price: ${item_price if item_price is not None else 'not listed'}\n"
+            f"Description: {item_desc}\n\n"
+            "User wardrobe:\n" + "\n".join(wardrobe_lines) + "\n\n"
+            "Return 1-2 outfit ideas. Explicitly name the new item and at least one wardrobe item in each suggestion."
+        )
+
+    return generate(prompt, system="You are a helpful personal stylist.")
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -222,5 +263,36 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit or not outfit.strip():
+        return "No outfit suggestion is available yet, so a fit card cannot be created."
+
+    item_title = new_item.get("title") or new_item.get("name") or "thrifted find"
+    price = new_item.get("price")
+    platform = new_item.get("platform") or "platform not listed"
+    brand = new_item.get("brand")
+    description = new_item.get("description") or ""
+    colors = ", ".join(new_item.get("colors", [])) or "not listed"
+    style_tags = ", ".join(new_item.get("style_tags", [])) or "not listed"
+    brand_detail = f"Brand: {brand}" if brand else "Brand: not listed"
+
+    prompt = (
+        "Write a fresh, social-media-ready fit card caption in 2-4 sentences. "
+        "Make it sound personal and specific, not like a product listing. "
+        "Mention the item, its price, and its platform exactly once each, "
+        "and use the outfit details to establish a clear vibe. "
+        "Do not invent or imply any brand; only mention a brand if one is "
+        "provided below, and never write the word 'null' as a brand.\n\n"
+        f"Item: {item_title}\n"
+        f"Description: {description}\n"
+        f"Colors: {colors}\n"
+        f"Style tags: {style_tags}\n"
+        f"{brand_detail}\n"
+        f"Price: ${price if price is not None else 'not listed'}\n"
+        f"Platform: {platform}\n\n"
+        f"Outfit suggestion:\n{outfit.strip()}"
+    )
+    return generate(
+        prompt,
+        system="You write concise, distinctive thrift-fashion fit card captions.",
+        cache=False,
+    )
