@@ -151,10 +151,7 @@
 
 ## Sample Run
 
-<!-- Two things go here.
 
-     1. One FULL query and its output, pasted as text.
-     2. Your three per-tool terminal tests — the command and what it printed. -->
 
 
 **One full query**
@@ -280,14 +277,20 @@ These perfectly faded Levi's have that ideal broken-in feel right out of the box
 **Moment 1**
 
 - *What I asked for:*
+I used AI to write the functions search_listings, suggest_outfit, and create_fit_card. The prompt I used was I copied in what is the directions in the codepath walkthrough and then I also copied the notes from tools.py.
 - *What came back:*
+It returned 3 functions that were independent of each other and was able to be tested using the command that was included in the notes of each of the functions. Each of them passed those and also passed once they were tested. 
 - *What I changed:*
+ From the testing that was done it looks like everything is working as intended and it was written well. But changes might need to be done next week after we do a more in depth testing session and try to find ways in which to make it fail. So For this session I did not change anything to the responses that it gave me as everything appears to be working as intended. 
 
 **Moment 2**
 
 - *What I asked for:*
+I did the suggestion at the end of milestone 3 "Here are five acceptance criteria for a multi-tool agent. For each one, tell me exactly how you would test it using only what the sentence says. Don't suggest improvements — just tell me what you'd do." 
 - *What came back:*
+It gave me a walk through of how it would go about testing the criteria that I included in criteria.md, the ones that I had created before using this prompt. 
 - *What I changed:*
+I went back and changed some of the criteria to be a little clearer so that it was easier to identify what was being tested. Not to make it so that the criteria always passed but rather to make it so that the criteria was actually testable and had a clear path to testing. 
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
