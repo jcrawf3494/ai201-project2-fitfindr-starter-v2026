@@ -59,17 +59,48 @@
 
 ### `search_listings`
 
-- **What it does:** This 
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
+- **What it does:** 
+     - This returns a a list that contains matches to the user input in description. It ranks the matches in how well they match. The user can also add in an optional size filter and max_price cieling. 
+
+- **Inputs:**  
+     - description: str, (required)
+          - Description: This is a string input where the user describes the clothing.
+     - size: str | None = None, 
+          - Description: This is a string input of size that the user can use to filter but it is optional. 
+     - max_price: float | None = None
+          - Description: This is a float input so the user can put in an input to filter out anything above a certain price threshold. 
 - **Returns:**
+     A list of matching listing dicts based off of the input strings description and size and uses max_prize as a filter as well as size. It puts the best match first. 
+     The return dict has these fields:
+          - id
+          - title
+          - description
+          - category 
+          - style_tags (list)
+          - size
+          - condition
+          - price (float)
+          - colors (list)
+          - brand (str or None)
+          - platform 
 - **When it has nothing:**
+     It returns and empty list when nothing matches. NOT None and NOT an exception.
 
 ### `suggest_outfit`
 
 - **What it does:**
+     - This will look at the thrifted item and the user's wardrobe and then suggest on or two outfits. It will uses generative AI to do this by calling a model. 
+
 - **Inputs:**
+     - new_item: dict 
+          - Description: it takes the item and all the information from it in a dictionary format. This is taken from items that the user is currently considering to buy. 
+     - wardrobe: dict; 
+          - Description: 
+               - This can be empty but it is a dict with items key that holds a list of items. 
 - **Returns:**
+     - a non empty string with outfit suggestions. It will ALWAYS be non-empty
 - **When it has nothing:**
+     - it will never return nothing, if there is no input then it will just use general styling advice rather than information that is based from input by the user. 
 
 ### `create_fit_card`
 
