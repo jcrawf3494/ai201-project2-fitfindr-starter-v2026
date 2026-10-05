@@ -144,10 +144,9 @@
 **Where it lives:** `agent.py::run_agent` the actual functions live in tools.py
 
 **How the query is parsed:** 
-To move from search_listings to suggest_outfit 
-It will use regex and just look for an empty list. So if the list is empty in search_listings that is how it decides to move forward or not. From there the model will look and decide what to do in suggest_outfit and search_listings since a lot of the work there is done by the model. 
+`agent.py::_parse_query` uses regular expressions to extract a size after `size` (for example, `size M`) and a price ceiling after phrases such as `under $30`, `up to $30`, or `max_price=30`. The remaining text is passed as the description to `search_listings`.
 
-**What moves through the session:** search_listings(description, size, max_price) if not empty moves to suggest_item. new_item comes from the seach_listing and for every new_item added it gets added to the wardrobe: dict. the inputs to search_listing are sent to the model as well and then the output string from suggest_outfit is sent to create_fit_card the inputs to create_fit_card are sent to the model. to and adds it to the new_item dict to create a dictionary of all the new outfits and their descriptions and returns it via a string. 
+**What moves through the session:** `run_agent` stores the parsed filters and all search results in the session. If results are found, it selects the first listing and passes it with the supplied wardrobe to `suggest_outfit`; that suggestion and listing then go to `create_fit_card`. An empty search result sets an actionable error and stops before either later tool is called.
 ---
 
 ## Sample Run
@@ -157,11 +156,79 @@ It will use regex and just look for an empty list. So if the list is empty in se
      1. One FULL query and its output, pasted as text.
      2. Your three per-tool terminal tests — the command and what it printed. -->
 
-**One full query**
 
+**One full query**
+This is what is produced when agent.py is run
+=== A query the data can match ===
+  found:    Graphic Tee — 2003 Tour Bootleg Style — $24.0 on depop
+  outfit:   Here are two effortless outfit combinations featuring your new 2003 Tour Bootleg Graphic Tee and pieces from your wardrobe:
+
+### Outfit 1: 90s Streetwear Edge
+Lean into the vintage, worn-in vibe of the tee by pairing it with relaxed denim and chunky footwear. 
+* **Top:** **Graphic Tee — 2003 Tour Bootleg Style**
+* **Bottoms:** Baggy straight-leg jeans (dark wash)
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+* **Styling Tip:** Since the tee has a slightly boxy fit, let it hang naturally over the baggy jeans. Add the black crossbody bag to keep it functional, and let the chunky white sneakers brighten up the dark denim-and-black color palette.
+
+### Outfit 2: High-Low Contrast Grunge
+Mix the casual, edgy energy of the graphic tee with tailored trousers to create a cool, high-low textured look.
+* **Top:** **Graphic Tee — 2003 Tour Bootleg Style** (tucked in slightly)
+* **Bottoms:** Wide-leg khaki trousers
+* **Outerwear:** Vintage black denim jacket (worn over the shoulders or unbuttoned)
+* **Shoes:** Black combat boots
+* **Accessories:** Brown leather belt
+* **Styling Tip:** Cinch the khaki trousers with the brown leather belt and do a half-tuck with the graphic tee to define your waist. Layer the vintage black denim jacket on top and finish with the black combat boots to tie the grunge elements together.
+  fit card: Found this perfectly faded 2003 tour bootleg tee hiding in the racks and honestly, it’s giving instant 90s streetwear edge. I love wearing it slightly boxy over baggy denim with chunky sneakers, or dressed down with wide-leg trousers and combat boots. Snagged it on depop for $24.0 and it’s already my go-to.
+
+=== A query it can't ===
+  stopped: No listings match your search. Try changing the description or size, or raising the maximum price.
+  fit_card is None — it should still be None here
+
+The second one should stop before the fit card. If both paths look the same,
+the branch isn't doing anything yet.
 ```
 $ python app.py ask '...'
 
+This is a manual ask that will pass: 
+python app.py ask 'I want a red sweater under $50'
+
+  Found:    Oversized College Crewneck — Faded Red — $21.0 on thredUp
+
+  Outfit:   Hey there! Great thrift find—that faded red college crewneck has such an effortless, lived-in vintage feel, and the roomy fit makes it super versatile. 
+
+Here are two stylish outfit combinations using your new crewneck and pieces from your wardrobe:
+
+### Look 1: Streetwear Casual
+*This look leans into the relaxed, roomy fit of the crewneck and plays with classic streetwear proportions.*
+* **Top:** **Oversized College Crewneck — Faded Red** (New Item)
+* **Bottoms:** **Baggy straight-leg jeans, dark wash**
+* **Shoes:** **Chunky white sneakers**
+* **Accessories:** **Black crossbody bag**
+* **Styling Tip:** Let the crewneck hang loose over the baggy jeans for an easy, slouchy silhouette. Pair with the chunky white sneakers and throw on the black crossbody bag to keep it hands-free and functional for everyday wear.
+
+### Look 2: Elevated Contrast (Red, Tan & Black)
+*This combination balances the sporty, casual vibe of the crewneck with tailored trousers for a cool high-low mix.*
+* **Top:** **Oversized College Crewneck — Faded Red** (New Item) worn over the **White ribbed tank top** (let the white hem peek out at the bottom for dimension)
+* **Bottoms:** **Wide-leg khaki trousers**
+* **Outerwear:** **Vintage black denim jacket**
+* **Shoes:** **Black combat boots**
+* **Accessories:** **Brown leather belt**
+* **Styling Tip:** Tuck the front of the crewneck casually into the khaki trousers, accented with the brown leather belt. Layer the vintage black denim jacket on top and anchor the outfit with the black combat boots to tie the dark accents together. 
+
+Which of these vibes are you feeling most today?
+
+  Fit card: There's nothing quite like the buttery-soft, sun-bleached look of this faded red oversized college crewneck. Snagged on thredUp for $21.0, it’s got that perfect slouchy drape whether you're throwing it on with baggy dark denim or styling it high-low under a black denim jacket. Grab your favorite sneakers and consider your effortless off-duty uniform officially sorted.
+
+2 model calls this session, 939 prompt + 469 output tokens
+
+This is a manual pass that will fail: 
+
+python app.py ask 'I want a puppy'                
+
+  No listings match your search. Try changing the description or size, or raising the maximum price.
+
+0 model calls this session
 ```
 
 **The three tools, tested one at a time**
