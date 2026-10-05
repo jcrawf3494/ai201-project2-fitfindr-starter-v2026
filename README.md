@@ -135,16 +135,7 @@ STRETCH FEATURE TOOL
 
 ## Planning Loop
 
-<!-- Your branch rule, stated as a rule — the condition AND both paths — plus
-     the file and function that holds it.
 
-     Like this:
-       "If search_listings returns an empty list, put a message in the session
-        and stop. Otherwise take the first result and go to suggest_outfit."
-        — agent.py::run_agent
-
-     The grader checks your code against what you claim here, so the file and
-     function have to be real. -->
 
 **Branch rule:**
      If search_listings() from tools.py returns an empty list, put a message in the session, "No listings match your search, please try again" then stop the loop and ask for user input again. If search_listings() returns with a valid list, ie one that is full or not empyt,  then move to suggest_outfit() from tools.py and perform that action of that funtion. This function takes the output from search_listings() which is a dict and uses that to fill new_item dict. Then once those items are considered it moves to wardrobe: dict to create the suggestions and holds those in a dict as well. 
