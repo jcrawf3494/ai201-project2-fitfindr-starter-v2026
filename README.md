@@ -93,7 +93,7 @@
 
 - **Inputs:**
      - new_item: dict 
-          - Description: it takes the item and all the information from it in a dictionary format. This is taken from items that the user is currently considering to buy. 
+          - Description: it takes the item and all the       information from it in a dictionary format. This is taken from items that the user is currently considering to buy. 
      - wardrobe: dict; 
           - Description: 
                - This can be empty but it is a dict with items key that holds a list of items. 
@@ -105,9 +105,16 @@
 ### `create_fit_card`
 
 - **What it does:**
+     - It uses the inputs to create a 2-4 sentence description. It uses a model to use generative AI to make the description. 
 - **Inputs:**
+     - outfit: string
+          - Description: this is the outfit suggestion from suggest_outfit() in string format
+     - new_item: dict
+          - Description: this is the listing dict for the item
 - **Returns:**
+     - a 2-4 sentence caption about the input variables that were given
 - **When it has nothing:**
+     - it should return a descptive message rather than raise an exception or say none or null. 
 
 ---
 
@@ -125,13 +132,22 @@
      function have to be real. -->
 
 **Branch rule:**
+     If search_listings() from tools.py returns an empty list, put a message in the session, "No listings match your search, please try again" then stop the loop and ask for user input again. If search_listings() returns with a valid list, ie one that is full or not empyt,  then move to suggest_outfit() from tools.py and perform that action of that funtion. This function takes the output from search_listings() which is a dict and uses that to fill new_item dict. Then once those items are considered it moves to wardrobe: dict to create the suggestions and holds those in a dict as well. 
+     
+     BRANCHING If wardrobe: dict is empty it will just give general advice. if it is not empty then it will format the wardrobe items into the prompt and ask for specific combinations naming pieces the user already owns and then return the models response. 
 
-**Where it lives:** `agent.py::run_agent`
+     Once suggest_outfit() has run it will go to creat_fit_card() and use the output from suggest_outfit to generate a listing description for that product that is unique every time. 
+     
+     BRANCHING: if outfit is empty it will return a descriptive message rather than raising an exception or an error. 
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
 
-**What moves through the session:** <!-- which fields, in what order -->
+**Where it lives:** `agent.py::run_agent` the actual functions live in tools.py
 
+**How the query is parsed:** 
+To move from search_listings to suggest_outfit 
+It will use regex and just look for an empty list. So if the list is empty in search_listings that is how it decides to move forward or not. From there the model will look and decide what to do in suggest_outfit and search_listings since a lot of the work there is done by the model. 
+
+**What moves through the session:** search_listings(description, size, max_price) if not empty moves to suggest_item. new_item comes from the seach_listing and for every new_item added it gets added to the wardrobe: dict. the inputs to search_listing are sent to the model as well and then the output string from suggest_outfit is sent to create_fit_card the inputs to create_fit_card are sent to the model. to and adds it to the new_item dict to create a dictionary of all the new outfits and their descriptions and returns it via a string. 
 ---
 
 ## Sample Run
