@@ -19,26 +19,13 @@
 
 ---
 
-<!-- ─────────────────────────────────────────────────────────────────────────
-     HOW TO USE THIS FILE
 
-     This is your submission. Fill each section in as you finish the milestone
-     it belongs to — don't leave it all to the end.
-
-     Unit 3 asks for the first five sections. Unit 4 adds the five below them.
-     Leave the unit 4 sections alone until then; they're here so you know
-     what's coming.
-
-     Everything is pasted as TEXT. No screenshots, no images, no video links.
-     A typed block of output gets full credit; a picture of the same output
-     gets none.
-     ───────────────────────────────────────────────────────────────────────── -->
 
 <!-- ═══════════════════════ UNIT 3 — THE BUILD ═══════════════════════ -->
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
+FitFindr helps users discover secondhand clothing by searching listings with a description and optional size or maximum price. It selects a matching item and suggests outfit combinations based on the user’s wardrobe, or gives general styling advice if the wardrobe is empty. The app creates a shareable fit-card caption for the item, then recommends similar listings and additional pieces that could complete the outfit. The user enters in a search in a string and then adds in the rest 
 
 
 
@@ -74,7 +61,7 @@
           - brand (str or None)
           - platform 
 - **When it has nothing:**
-     It returns and empty list when nothing matches. NOT None and NOT an exception.
+     It returns and empty list when nothing matches.  NOT None and NOT an exceptions. Now the logic is added that when it sees none it also says a message prompting the user on how to get a response by suggesting the user changes the description or size or price 
 
 ### `suggest_outfit`
 
@@ -142,7 +129,7 @@ STRETCH FEATURE TOOL
      
      BRANCHING If wardrobe: dict is empty it will just give general advice. if it is not empty then it will format the wardrobe items into the prompt and ask for specific combinations naming pieces the user already owns and then return the models response. 
 
-     Once suggest_outfit() has run it will go to creat_fit_card() and use the output from suggest_outfit to generate a listing description for that product that is unique every time. 
+     Once suggest_outfit() has run it will go to create_fit_card() and use the output from suggest_outfit to generate a listing description for that product that is unique every time. 
      
      BRANCHING: if outfit is empty it will return a descriptive message rather than raising an exception or an error. 
 
