@@ -397,16 +397,21 @@ that produced it:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | 1. A matching query completes all three tools | 4 of 5 | Met | All of the tests that had a matching query for the initial tool, like the search, continued on and completed all three tools |
+| 2 | 2. An impossible query stops before the second tool  | 5 of 5 | Met | This is an extension of the previous criteria to where it needs to stop if there is no matching criteria before moving on to the next state. This did that.  |
+| 3 | 3. Outfit suggestion and fit card use prior state |4 of 5  | Met | In this one  I made sure that there was mention of the previous state in the outfit card to make sure that it matched and it did.  |
+| 4 | 4. Fit card does not invent a brand | 5 of 5 | Met | Checked to see if there were none or null or if it invented a brand when a specific brand or none was mentioned.  |
+| 5 | 5. Search results stay within the price cap | 5 of 5   | Met  | Gave a price point and then had to return results less than that or up to that, but could not go over.  |
 
 **Diagnoses**
 
-
-
+So all of the evals that I ran passed with perfect scores of 5/5 on each of the different criteria. This is can be as much of a red flad when doing testing and evaluations almost as much as if there were multiple failures. Because it usually means that something is wrong with the tests or with the criteria. So I initially rana  second eval. With the first one being run_2026-10-07_2002_before.md and then run_2026-10-11_1555_before.md being the most recent one. Both run_eval.py results showed the same results. So I initially looked at the criteria and the tests to see if I had specifically designed to be passed. The criteria looked okay. But the issue did turn out to be the tests. It looks like for each of the tests or evaluation it was using the same input for each try. For example for every try it gave
+ the Query: `graphic tee under $20`
+- Wardrobe: example
+Which caused the model to pull the same information for every test which was 
+selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+I then looked at the other tries for the evals that were run and it did the same thing for every test. And try and while for some of the criterions was needed to test, for example the fit card needed to have the item more than once, but the other onces where it is looking to stay under pricing limits for instance would need to have multiple different inputs tested. And try to have edge cases like uses forty instead of 40 or spelling issues etc. So while the tests TECHNICALLY passed they were tests that were not set up correctly and will need to be run again with updates to the testing to be able to get a good ideas if the application is actually met the criterion or not. 
 ---
 
 ## Loop Trace
