@@ -360,20 +360,324 @@ STRETCH FEATURE
      `python run_eval.py --label before` runs everything and writes the table
      into results/. Paste it here and fill in the verdicts. -->
 
+- Produced by: `run_eval.py::main`
+- Loop: `agent.py::run_agent` · tools: `tools.py`
+- Tries per scenario: 5, caching off
+- Temperature: 0.9
+- When: 2026-10-11 15:55
+
+The table below scores the five criteria from `criteria.md` against the
+five recorded tries for each scenario.
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Outfit suggestion and fit card use prior state | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card does not invent a brand | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results stay within the price cap | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+---
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
-```
+Produced by `run_eval.py::main` (which calls `run_once`, which calls `agent.py::run_agent`) and written to `results/run_2026-10-11_1555_before.md`. This is Try 1 of the "search results stay within the price cap" scenario. The trace lines come from the `trace.step()` calls in `agent.py::run_agent`.
+
+````
+### search results stay within the price cap
+
+- Query: `graphic tee under $20`
+- Wardrobe: example
+
+**Try 1**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+
+Outfit suggestion:
 
 ```
+Here are two distinct outfit combinations using your new vintage band tee and pieces from your wardrobe:
+
+### Look 1: 90s Streetwear Edge
+*This look leans into the boxy, well-loved feel of the tee, pairing it with dark denim and chunky sneakers for an effortless, casual vibe.*
+
+* **Top:** Vintage Band Tee (Faded Grey)
+* **Bottoms:** Baggy straight-leg jeans, dark wash
+* **Outerwear (Optional):** Vintage black denim jacket (worn open for a layered, double-denim-adjacent texture play)
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+### Look 2: High-Low Grunge Minimalist
+*This combination plays with proportions by pairing the boxy, distressed tee with tailored trousers, finished off with classic grunge footwear.*
+
+* **Top:** Vintage Band Tee (Faded Grey) - *Tuck it in slightly or let it hang loose over the waistband.*
+* **Bottoms:** Wide-leg khaki trousers
+* **Accessory:** Brown leather belt (to add a touch of structure and break up the tones)
+* **Shoes:** Black combat boots (to anchor the slouchy silhouette of the trousers)
+* **Outerwear (Layering option):** Black cropped zip hoodie (tied around the waist or thrown over the shoulders)
+```
+
+Fit card:
+
+```
+This boxy, charcoal band tee has that perfect sun-bleached fade you hunt years for. I've been living in it with slouchy khaki trousers and combat boots for an effortless grunge silhouette. Grab it on depop for $19.0.
+```
+
+Trace:
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 3 items: Vintage Band Tee — Faded Grey, Y2K Baby Tee — Butterfly Print, Mesh Long-Sleeve Top — Black
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Here are two distinct outfit combinations using your new vintage band tee and pieces from your wardrobe:  ### …
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: This boxy, charcoal band tee has that perfect sun-bleached fade you hunt years for. I've been living in it wit…
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+```
+
+**Try 2**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+
+Outfit suggestion:
+
+```
+Here are two distinct outfit combinations using your new vintage band tee and pieces from your wardrobe:
+
+### Look 1: 90s Streetwear Edge
+This look leans into the boxy, well-loved vibe of the tee, pairing it with dark denim and chunky footwear for an effortless, casual aesthetic. 
+
+*   **Top:** Vintage Band Tee (Faded Grey)
+*   **Bottoms:** Baggy straight-leg jeans (dark wash)
+*   **Shoes:** Chunky white sneakers
+*   **Bag:** Black crossbody bag
+*   **Styling Tip:** Since the band tee has a boxy fit, let it hang naturally over the baggy jeans. Add the black crossbody bag and chunky white sneakers to tie the streetwear look together.
+
+---
+
+### Look 2: High-Low Grunge Contrast
+This combination plays with proportions and styles by pairing the grungy, distressed band tee with tailored trousers, finished off with classic combat boots for an edgy, put-together finish.
+
+*   **Top:** Vintage Band Tee (Faded Grey)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Outerwear:** Vintage black denim jacket
+*   **Shoes:** Black combat boots
+*   **Accessory:** Brown leather belt
+*   **Styling Tip:** Tuck the band tee loosely into the wide-leg khaki trousers and cinch with the brown leather belt to define your waist against the wider silhouettes. Throw the vintage black denim jacket over your shoulders and lace up your black combat boots to complete the grunge-meets-minimalist aesthetic.
+```
+
+Fit card:
+
+```
+Threw this charcoal boxy band tee into heavy rotation with baggy denim and combat boots for that effortless 90s grunge edge. Snagged it on depop for just $19.0—the faded, well-loved wash is everything.
+```
+
+Trace:
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 3 items: Vintage Band Tee — Faded Grey, Y2K Baby Tee — Butterfly Print, Mesh Long-Sleeve Top — Black
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Here are two distinct outfit combinations using your new vintage band tee and pieces from your wardrobe:  ### …
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Threw this charcoal boxy band tee into heavy rotation with baggy denim and combat boots for that effortless 90…
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+```
+
+**Try 3**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+
+Outfit suggestion:
+
+```
+Hey! Great find on that vintage band tee—a faded grey boxy tee is a timeless streetwear staple, and at $19, that's a total steal. 
+
+Here are two effortless ways to style your new **Vintage Band Tee** using pieces right from your wardrobe:
+
+### Look 1: 90s Grunge Streetwear
+*This look leans into the relaxed, distressed vibe of the tee by pairing it with denim and chunky footwear.*
+
+* **Top:** Vintage Band Tee (Faded Grey)
+* **Bottoms:** Baggy straight-leg jeans (dark blue/indigo)
+* **Outerwear:** Vintage black denim jacket
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+**Why it works:** Double denim is having a major moment, and throwing the vintage black denim jacket over your new faded grey tee creates a cool, tonal contrast. The boxy fit of the shirt will drape nicely over the baggy dark-wash jeans, and the chunky white sneakers add a fresh, balanced finish.
+
+---
+
+### Look 2: High-Low Smart Casual
+*This outfit mixes the edgy, well-loved character of the band tee with clean, tailored earth tones for an elevated, effortless look.*
+
+* **Top:** Vintage Band Tee (Faded Grey)
+* **Bottoms:** Wide-leg khaki trousers (khaki/tan)
+* **Shoes:** Black combat boots
+* **Accessories:** Brown leather belt, Black crossbody bag
+* **Layering option (optional):** Black cropped zip hoodie worn over the shoulders or unzipped on hand if it gets chilly.
+
+**Why it works:** Juxtaposing a casual graphic tee with tailored wide-leg trousers is one of my favorite styling tricks—it instantly looks intentional and fashion-forward. Tucking the band tee into the trousers and defining the waist with the brown leather belt pulls the whole outfit together, while the black combat boots add a subtle edge that ties back to the tee's graphics.
+```
+
+Fit card:
+
+```
+Tossed on this perfectly sun-bleached grey band tee with baggy dark denim and chunky white sneakers for a heavy 90s grunge look. It's got that heavy, lived-in feel you spend years trying to thrift, but I snagged it on depop for just $19.0.
+```
+
+Trace:
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 3 items: Vintage Band Tee — Faded Grey, Y2K Baby Tee — Butterfly Print, Mesh Long-Sleeve Top — Black
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey! Great find on that vintage band tee—a faded grey boxy tee is a timeless streetwear staple, and at $19, th…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Tossed on this perfectly sun-bleached grey band tee with baggy dark denim and chunky white sneakers for a heav…
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+```
+
+**Try 4**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+
+Outfit suggestion:
+
+```
+Hey! That vintage band tee is an amazing find—the boxy fit and faded wash give it so much character. Here are two effortless ways to style it using pieces from your wardrobe:
+
+### Outfit 1: Effortless Streetwear Edge
+*Play up the relaxed, vintage vibe of the tee with a full denim-on-denim moment and chunky kicks.*
+
+*   **Top:** Vintage Band Tee — Faded Grey *(New Item)*
+*   **Outerwear:** Vintage black denim jacket
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+**Why it works:** Pairing the faded grey tee with the dark wash baggy jeans creates a great tonal contrast. Tossing the vintage black denim jacket over the top leans into that 90s streetwear aesthetic, while the chunky white sneakers keep the lower half feeling balanced and fresh. 
+
+***
+
+### Outfit 2: High-Low Contrast
+*Mix the grungy, distressed feel of the band tee with polished, earthy tailoring for a cool, unexpected look.*
+
+*   **Top:** Vintage Band Tee — Faded Grey *(New Item)* (tucked in slightly)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Accessories:** Brown leather belt
+*   **Shoes:** Black combat boots
+*   **Bag:** Black crossbody bag
+
+**Why it works:** This is all about playing with proportions and styles. The wide-leg khaki trousers bring a minimal, structured element, which is instantly grounded by the edgy black combat boots. Adding the brown leather belt pulls the earth tones together and lets you do a casual half-tuck with the band tee to define your waist.
+```
+
+Fit card:
+
+```
+Wore this perfectly faded grey band tee with baggy dark wash denim and chunky white kicks for instant 90s streetwear energy. It’s got that ideal boxy, well-loved drape that only comes with age. Snag it on depop for $19.0 to instantly level up your rotation.
+```
+
+Trace:
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 3 items: Vintage Band Tee — Faded Grey, Y2K Baby Tee — Butterfly Print, Mesh Long-Sleeve Top — Black
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey! That vintage band tee is an amazing find—the boxy fit and faded wash give it so much character. Here are …
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Wore this perfectly faded grey band tee with baggy dark wash denim and chunky white kicks for instant 90s stre…
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+```
+
+**Try 5**
+
+- stopped early: no
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+- search_results: 3
+
+Outfit suggestion:
+
+```
+Hey there! That vintage faded grey band tee is an amazing find—the boxy fit and distressed graphic give it so much character. Since it has a cool, effortless grunge and streetwear vibe, I’ve put together two distinct outfit combinations utilizing pieces right from your wardrobe:
+
+### Outfit 1: 90s Streetwear Edge
+*Play up the boxy, relaxed fit of the band tee by pairing it with rich dark denim and chunky footwear.*
+
+* **Top:** Vintage Band Tee — Faded Grey (New Item!)
+* **Bottoms:** Baggy straight-leg jeans, dark wash
+* **Outerwear:** Vintage black denim jacket (worn over the tee for a double-denim moment)
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+**Styling Tip:** Let the tee hang loose over the baggy jeans for an effortless, skate-inspired silhouette. Layer the black denim jacket on top, leaving it unbuttoned to let the graphic peek through. 
+
+***
+
+### Outfit 2: High-Low Contrast
+*Balance the worn-in, grunge aesthetic of the band tee with clean, tailored earth tones for a stylish juxtaposition.*
+
+* **Top:** Vintage Band Tee — Faded Grey (New Item!)
+* **Bottoms:** Wide-leg khaki trousers
+* **Accessories:** Brown leather belt + Black crossbody bag
+* **Shoes:** Black combat boots
+
+**Styling Tip:** Tuck the band tee loosely into the wide-leg khaki trousers and define your waist with the brown leather belt. Finish the look with the black combat boots to anchor the outfit and tie in the dark tones of the tee's graphic.
+```
+
+Fit card:
+
+```
+This charcoal faded grey band tee has that perfect, lived-in drape that’s impossible to fake. I love wearing it loose over baggy dark denim with chunky sneakers for an effortless streetwear edge. Snag it on depop for $19.0 to instantly ground your rotation in 90s grunge.
+```
+
+Trace:
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 3 items: Vintage Band Tee — Faded Grey, Y2K Baby Tee — Butterfly Print, Mesh Long-Sleeve Top — Black
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey there! That vintage faded grey band tee is an amazing find—the boxy fit and distressed graphic give it so …
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: This charcoal faded grey band tee has that perfect, lived-in drape that’s impossible to fake. I love wearing i…
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+```
+
+````
 
 ---
 
@@ -510,6 +814,20 @@ behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
 
+I moved one tool, `search_listings`, behind MCP. It is the one tool that doesn't call the model.
+
+What changed in the code:
+
+- `mcp_server.py` now registers `search_listings` with `@mcp.tool()`. It takes `description: str`, an optional `size: str | None` and an optional `max_price: float | None`, and returns `list[dict]`. Its docstring is the tool description and states the empty case: no match returns an empty list. The function wraps the real implementation in `tools.py`, which is imported under the alias `_search_listings_impl` so the registered tool doesn't call itself.
+- `agent.py::run_agent` no longer imports or calls `search_listings` directly. It builds a `search_inputs` dict from the parsed query and calls `call_tool("search_listings", search_inputs)` from `mcp_client.py`.
+- I added a `trace.step("search_listings (via MCP)", ...)` call right after it, so the MCP call shows up in the trace (see the Loop Trace above).
+
+Whether anything behaved differently afterwards:
+
+- The return value did not change. The call still comes back as a list of listing dicts, and the empty-list branch still fires: an impossible query stops with `branch: empty, stopping` and no model calls (see the Empty search trace above).
+- Search results were the same kind of data as before, with the same fields, and all five criteria ran through the MCP path in the run logs.
+- `mcp_client.py` starts the server, makes the call and stops the server on every call, so each search spawns a subprocess. I did not time it, but that is the design and it is slower than a direct function call.
+
 
 
 ---
@@ -550,17 +868,100 @@ So based of the testing there were not "failures" of the criteria  or criterion 
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Outfit suggestion and fit card use prior state | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card does not invent a brand | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results stay within the price cap | 5 of 5 | PASS | PASS | FAIL | PASS | PASS | MISSED (4/5) |
+
+
+
 
 **Did it help, and how do I know:**
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
 
+It did "help" by causing fails. Here is the diagnosis for each run 
+Criterion 5, per try (query → parsed max_price → result prices):
+
+- Try 1 `graphic tee under $20` → 20.0 → [19.0, 18.0, 15.0]: all within the cap. PASS
+- Try 2 `graphic tee under forty dollars` → **None** → [24.0, 19.0, 18.0, 15.0, 26.0, 27.0]: the cap was never parsed, but every result happens to be under $40. PASS by outcome only.
+- Try 3 `graphic tee $25 or less` → **None** → [24.0, 19.0, 18.0, 26.0, 15.0, 27.0]: 26.0 and 27.0 are over the $25 cap. FAIL
+- Try 4 `graphic tee, budget of 30` → **None** → [24.0, 19.0, 18.0, 26.0, 15.0, 27.0]: the cap was never parsed, but every result happens to be under $30. PASS by outcome only.
+- Try 5 `graphic tee under $1` → 1.0 → []: nothing over the cap, and the loop stopped early. PASS
+
+Tries 2 and 4 are passes by luck, not by the cap being applied. If the criterion is read as "the cap is applied", they are FAILs and the row is 2/5. Either reading is MISSED.
+
+**Diagnosis of the criterion 5 miss**
+
+- **Place:** the loop's query parsing, `_parse_query` in `agent.py`. It is not the search tool.
+- **Mechanism:** the price regex in `_parse_query` only matches a keyword followed by a number: `under`, `below`, `less than`, `at most`, `up to`, `max`, `max_price=` or `<=`, then an optional `$` and digits. A cap phrased any other way (`under forty dollars`, `$25 or less`, `budget of 30`) matches nothing, so `parsed["max_price"]` is `None`. `None` is then passed to `search_listings` through the MCP call, and `search_listings` skips price filtering when `max_price` is `None`. The cap is dropped without any error or notice, and the search runs unfiltered.
+- **Why the tool is not at fault:** when the cap is parsed correctly (`under $20`, `under $1`), `search_listings` applies it correctly. Try 1 returned only prices at or below 20 and Try 5 returned nothing.
+- **Pattern:** Tries 2, 3 and 4 are one problem, not three. Only Try 3 produced a visible violation (26.0 and 27.0 against a $25 cap), because the other two caps happened to sit above every matching listing.
+- **Fix I would make, not done in this unit:** extend the price pattern in `_parse_query` to cover number words, `or less` and `budget of`. Better still, when a query contains a price word or `$` but `max_price` comes back `None`, set `session["notice"]` so the user is told the cap was not understood.
+
+## Failure Modes
+
+Three failure modes, each triggered on purpose.
+
+**1. Empty search.** The query `designer ballgown size XXS under $5` matches nothing. The loop stops before `suggest_outfit` and tells the user what to change. From `results/run_2026-10-11_1810_after.md`, scenario "impossible query stops early", produced by `agent.py::run_agent`:
+
+```
+- query used: `designer ballgown size XXS under $5`
+- parsed: {'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5.0}
+- stopped early: yes — The search found no matching listings. Try using different description keywords, changing the size, or raising the maximum price.
+- selected_item: (none)
+- search_results: 0
+
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty, stopping
+```
+
+**2. Empty wardrobe.** `suggest_outfit` is handed a wardrobe with no items. `agent.py::run_agent` sets `session["notice"]` saying general advice will be used, and `tools.py::suggest_outfit` switches to a general-styling prompt. From `results/run_2026-10-11_1810_after.md`, scenario "empty wardrobe" (`denim jacket under $50`), Try 1. It returned advice, with no crash and no empty string:
+
+```
+Outfit suggestion:
+
+That Wrangler cropped denim jacket is a fantastic find—the structured shoulders give it a great 80s edge, and the light wash makes it super versatile. 
+
+Here are 2 outfit ideas using general wardrobe principles of balance and proportion:
+
+**1. High-Contrast & Proportion Play**
+* **The Look:** Pair the **Wrangler Light Wash Cropped Denim Jacket** with a sleek black or charcoal ribbed midi dress and chunky black combat boots. 
+* **Why it works:** Because the jacket is cropped, it naturally defines your waist and balances the length of the midi dress. The dark, fitted dress creates a sharp contrast against the boxy, light-wash denim, adding instant edge.
+
+**2. Playful Textures (Double Denim)**
+* **The Look:** Layer the **Wrangler Light Wash Cropped Denim Jacket** over a crisp white cotton tee and wide-leg trousers in an olive green or camel color, finished off with retro sneakers.
+* **Why it works:** Pairing light-wash denim with earthy tones creates a grounded, effortless look. The relaxed, wide-leg pants balance out the structured, cropped silhouette of the jacket for an easy, balanced daytime outfit.
+
+Fit card:
+
+Shoulder pads doing all the heavy lifting in this vintage Wrangler cropped denim jacket. I love throwing it over an olive wide-leg trouser and crisp tee for that effortless daytime proportion play. Snagged this blank-canvas vintage layer on Poshmark for $42.0.
+```
+
+**3. Model unavailable.** `agent.py::run_agent` wraps both model calls, `suggest_outfit` and `create_fit_card`, in `try/except ModelUnavailable`. On a failure it records a `trace.step(...)` and sets `session["error"]` instead of raising. I changed one character of `GEMINI_API_KEY` in `.env`, ran the command below, then restored the key. The run did not hang and did not show a stack trace. It ended with a readable message that names the cause and the fix:
+
+```
+python app.py ask 'I want a shirt that is under $20.'
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 1 items: Vintage Polo Shirt — Forest Green
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey there! That forest green Ralph Lauren polo is an incredible find—classic, versatile, and that slightly box…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: ModelUnavailable: The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh k…
+
+  The model is unavailable, so the fit card could not be generated. The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com. Fix the model access issue and try again.
+
+1 model calls this session, 1 served from cache
+```
+
+The error came from the `create_fit_card` handler in `agent.py::run_agent`. Step 2 still shows an outfit because I had already asked this query, so `suggest_outfit` was answered from the build cache (the last line says "1 served from cache"). `create_fit_card` always calls the model with the cache off, so it was the first call to reach the API and it was rejected. The `suggest_outfit` handler was not exercised in this run, only the `create_fit_card` one.
 
 
 ---
@@ -570,6 +971,39 @@ So based of the testing there were not "failures" of the criteria  or criterion 
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
+
+The other tests that seem to still need to be re worked are as follows: 
+
+Criterion 2: weak test
+
+The impossible query has two causes, size XXS and under $5. Either one alone empties the results, so you can't tell which one triggered the stop.
+The error text in agent.py:195 is a fixed string, so it is identical on every try. The criterion requires a message that names what to change, and the test never checks that it fits the query.
+
+Criterion 3: mostly measures the prompt
+
+The prompt tells the model to name the new item and a wardrobe item, so it nearly always does.
+On the empty-wardrobe path only the item name is required, which is easier.
+A substring match is a loose check. Decide whether a partial title like "denim jacket" counts.
+
+Criterion 4: depends on the data
+
+The test only means something if the selected listing has a null brand. Check that in the log, because the model isn't responsible for it.
+The prompt already says "never write null" and "don't invent a brand", which pushes the model toward passing.
+A stronger test would add:
+a listing that does have a brand, with a check that the card names exactly that brand
+a scan of the card for brand names the model might add on its own, such as "Levi's" or "Nike"
+Criterion 1: easy target
+
+The scenario query matches clearly, and the loop has no random branches. The only failures would be a model outage or a crash, so 5 of 5 is almost certain.
+Your "why" says user phrasing is the risk, but the test uses a clean query. It doesn't exercise that risk.
+Fixes that stay within the testing
+
+Criterion 2: split it into two scenarios, one with only an impossible size and one with only an impossible price. Then check that the message matches the cause.
+Criterion 3: require an exact item title, or at least the key words, and score the empty-wardrobe path separately.
+Criterion 4: add one branded and one unbranded listing, and scan the cards for outside brand names.
+Criterion 1: use messier queries, such as typos, extra words and different sizes.
+
+So if there was more time I would go in and update the testing for these to offer a more robust testing and diagnosis of where the application actually is at. Right now it is almost like a "false positive" for how good the results are but after a deep dive it is obvious this is would not be an application that would be ready for production. Though depending on if I have time I might fix one more for the stretch feature. 
 
 
 
