@@ -30,6 +30,7 @@ mode — caching is what usually explains it.
 
 import argparse
 import datetime as dt
+import re
 import sys
 import traceback
 
@@ -44,6 +45,31 @@ def query_for(scenario, attempt):
     if queries:
         return queries[(attempt - 1) % len(queries)]
     return scenario["query"]
+
+
+# Brand names the model might add on its own. The dataset's own brands are
+# added to this at check time.
+EXTRA_BRANDS = [
+    "Nike", "Adidas", "Puma", "Reebok", "Gucci", "Prada", "Supreme", "Carhartt",
+    "Patagonia", "North Face", "J. Crew", "Gap", "Zara", "H&M", "Uniqlo",
+    "Converse", "Vans", "Dr. Martens", "Tommy Hilfiger", "Calvin Klein",
+]
+
+
+def brand_check(item, card):
+    """Evidence for criterion 4: the listing's brand, and any brand names in the
+    fit card. It does not score the try — a brand that matches the listing is
+    fine, one that doesn't is not, and the reader decides."""
+    from utils.data_loader import load_listings
+
+    known = {b for b in (l.get("brand") for l in load_listings()) if b} | set(EXTRA_BRANDS)
+    text = (card or "").replace("’", "'")
+    found = sorted(
+        b for b in known
+        if re.search(r"(?<![A-Za-z])" + re.escape(b) + r"(?![A-Za-z])", text, flags=re.IGNORECASE)
+    )
+    has_null = bool(re.search(r"\bnull\b", text, flags=re.IGNORECASE))
+    return {"listing_brand": item.get("brand"), "found": found, "null_word": has_null}
 
 
 def run_once(scenario, attempt=1, use_trace=True):
@@ -206,8 +232,19 @@ def write_report(rows, args):
                 + (f" (${item.get('price')}, {item.get('platform')})" if item else ""),
                 f"- search_results: {len(results)}",
                 f"- result prices: {[r.get('price') for r in results]}",
-                "",
             ]
+            if session.get("notice"):
+                lines.append(f"- notice: {session['notice']}")
+            if session.get("retry"):
+                lines.append(f"- retry: {session['retry']}")
+            if item and session.get("fit_card"):
+                check = brand_check(item, session["fit_card"])
+                lines.append(
+                    f"- brand check: listing brand = {check['listing_brand']!r}; "
+                    f"brand names in fit card = {check['found'] or 'none'}; "
+                    f"word 'null' in fit card = {'yes' if check['null_word'] else 'no'}"
+                )
+            lines.append("")
             if session.get("outfit_suggestion"):
                 lines += ["Outfit suggestion:", "", "```",
                           str(session["outfit_suggestion"]), "```", ""]

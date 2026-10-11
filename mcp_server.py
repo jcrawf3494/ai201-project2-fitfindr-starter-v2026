@@ -60,6 +60,7 @@ works with a direct call, and **a documented failure earns the point in full.**
 from mcp.server.fastmcp import FastMCP
 
 from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
+from tools import suggestions_tool as _suggestions_tool_impl
 
 # log_level="WARNING" keeps the server from printing an INFO line for every
 # request. Without it your terminal fills with "Processing request of type
@@ -79,6 +80,31 @@ def search_listings(
     if nothing matches, it returns an empty list.
     """
     return _search_listings_impl(description, size, max_price)
+
+
+@mcp.tool()
+def suggestions_tool(
+    new_item: dict | None,
+    outfit: str,
+    search_results: list[dict] | None = None,
+    max_price: float | None = None,
+) -> dict[str, list[dict]]:
+    """
+    Recommend listings similar to a selected listing, plus listings that could
+    complete an outfit. It does not call a model.
+
+    new_item is the selected listing dict (or null for none). outfit is the
+    outfit suggestion text. search_results is the list of listings the original
+    search returned; they are excluded from the similar-item picks. max_price is
+    in whole dollars and, when given, caps the similar-item picks.
+
+    Returns an object with two lists of listing dicts:
+    "suggested_items_based_on_search" (at most five, within 25% of the selected
+    item's price, empty when new_item is null) and
+    "suggested_items_to_help_make_your_outfit" (five when at least five other
+    listings exist, otherwise fewer).
+    """
+    return _suggestions_tool_impl(new_item, outfit, search_results, max_price)
 
 #
 # ──────────────────────────────────────────────────────────────────────────────

@@ -21,7 +21,6 @@ from mcp_client import call_tool
 from tools import (
     suggest_outfit,
     create_fit_card,
-    suggestions_tool,
 )
 from generate import ModelUnavailable
 
@@ -52,8 +51,14 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "fit_card": None,            # what create_fit_card returned
         "suggestions": None,         # similar listings and outfit-completion picks
         "notice": None,              # non-fatal information for the user
+        "retry": None,               # set when an empty search was retried with a looser filter
         "error": None,               # set when the run ended early
     }
+
+
+def _add_notice(session: dict, text: str) -> None:
+    """Add a non-fatal message without overwriting one that is already there."""
+    session["notice"] = f"{session['notice']} {text}" if session["notice"] else text
 
 
 def _parse_query(query: str) -> dict:
@@ -191,6 +196,32 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         )
         session["search_results"] = results
 
+        # Retry with looser constraints: if the search came back empty and the
+        # user asked for a size, search once more without the size filter and
+        # say what was dropped. Price and description are never loosened.
+        if not results and parsed["size"]:
+            retry_inputs = {**search_inputs, "size": None}
+            results = call_tool("search_listings", retry_inputs)
+            trace.step(
+                "search_listings (via MCP, retry without size)",
+                inputs=retry_inputs,
+                returned=results,
+                note=(
+                    f"retry: dropped size {parsed['size']}"
+                    if results
+                    else "retry: still empty, stopping"
+                ),
+            )
+            session["search_results"] = results
+            if results:
+                session["retry"] = {"dropped": "size", "value": parsed["size"]}
+                _add_notice(
+                    session,
+                    f"No listings matched size {parsed['size']}, so the search was "
+                    "repeated once without the size filter. The results below may "
+                    "not come in the size you asked for.",
+                )
+
         if not results:
             session["error"] = (
                 "The search found no matching listings. Try using different "
@@ -200,10 +231,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             return session
 
         if not wardrobe.get("items"):
-            session["notice"] = (
+            _add_notice(
+                session,
                 "Your wardrobe is empty, so this suggestion will use general "
                 "styling advice instead of pieces you own. Add wardrobe items "
-                "for personalized outfit combinations."
+                "for personalized outfit combinations.",
             )
 
         selected_item = results[0]
@@ -255,20 +287,16 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             returned=session["fit_card"],
         )
 
-        session["suggestions"] = suggestions_tool(
-            selected_item,
-            session["outfit_suggestion"],
-            search_results=results,
-            max_price=parsed["max_price"],
-        )
+        suggestions_inputs = {
+            "new_item": selected_item,
+            "outfit": session["outfit_suggestion"],
+            "search_results": results,
+            "max_price": parsed["max_price"],
+        }
+        session["suggestions"] = call_tool("suggestions_tool", suggestions_inputs)
         trace.step(
-            "suggestions_tool",
-            inputs={
-                "new_item": selected_item,
-                "outfit": session["outfit_suggestion"],
-                "search_results": results,
-                "max_price": parsed["max_price"],
-            },
+            "suggestions_tool (via MCP)",
+            inputs=suggestions_inputs,
             returned=session["suggestions"],
         )
         return session

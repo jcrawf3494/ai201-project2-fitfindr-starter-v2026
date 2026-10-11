@@ -67,7 +67,7 @@ If the user is looking at a specific item say from Nautica you do not want to cr
 
 ---
 
-## 5. Your choice
+## 5. Your choice -- Max Price Barrier
 
 
 

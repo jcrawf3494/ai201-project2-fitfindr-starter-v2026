@@ -44,10 +44,22 @@ SCENARIOS = [
         "criterion": 3,
     },
     {
-        # This query selects a listing whose brand is null, checking that the
-        # fit card does not invent a brand. Five tries test criterion 4.
+        # Criterion 4. The first version used one null-brand listing five
+        # times, which could only show the model not inventing a brand for
+        # that one item. Each try now selects a different listing: three with
+        # a null brand (two of them styles that invite a brand name) and two
+        # with a real brand, so the card must name the right one and nothing
+        # else. run_eval.py logs the listing's brand and any brand names found
+        # in the card, so each try can be scored from the log.
         "name": "fit card does not invent a brand",
         "query": "2003 tour bootleg tee under $30",
+        "queries": [
+            "2003 tour bootleg tee under $30",                  # null brand (lst_006)
+            "vintage windbreaker color block purple teal under $45",  # null brand, invites Nike/Adidas
+            "vintage polo shirt under $20",                      # brand: Ralph Lauren (lst_024)
+            "denim jacket under $50",                            # brand: Wrangler (lst_007)
+            "90s track jacket in size M",                        # brand: Champion (lst_004)
+        ],
         "wardrobe": "example",
         "criterion": 4,
     },
@@ -70,6 +82,17 @@ SCENARIOS = [
         "criterion": 5,
     },
 ]
+
+SCENARIOS.append({
+    # Stretch feature: retry with looser constraints. No tee comes in XXS, so
+    # the first search is empty; the agent should repeat it once without the
+    # size filter, say what it dropped, and carry on. A diagnostic run, not one
+    # of the five criteria.
+    "name": "empty search retries without size",
+    "query": "graphic tee size XXS",
+    "wardrobe": "example",
+    "criterion": None,
+})
 
 WARDROBES = ("example", "empty")
 

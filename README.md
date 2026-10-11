@@ -347,6 +347,12 @@ STRETCH FEATURE
      Don't fill these in during unit 3.
      ═══════════════════════════════════════════════════════════════════ -->
 
+**Stretch features were added in this unit.** Details are in [STRETCH FEATURES](#stretch-features) below:
+
+- A second tool moved onto MCP (`suggestions_tool`).
+- Retry with looser constraints: an empty search retries once without the size filter and says what it dropped.
+- A second improvement from the diagnosis, measured the same way: a stronger test for criterion 4.
+
 ---
 
 ## Run Log — Before
@@ -1004,6 +1010,126 @@ Criterion 4: add one branded and one unbranded listing, and scan the cards for o
 Criterion 1: use messier queries, such as typos, extra words and different sizes.
 
 So if there was more time I would go in and update the testing for these to offer a more robust testing and diagnosis of where the application actually is at. Right now it is almost like a "false positive" for how good the results are but after a deep dive it is obvious this is would not be an application that would be ready for production. Though depending on if I have time I might fix one more for the stretch feature. 
+
+
+
+---
+
+## STRETCH FEATURES
+
+Three stretch features were added. None of them changes `criteria.md`.
+
+### 1. A second tool moved onto MCP
+
+I moved suggestions_tool onto MCP as the second tool. Like search_listings, it doesn't call the model, so moving it only changes where it runs and not what it returns.
+
+In mcp_server.py I registered suggestions_tool as a tool. It takes the selected item (or nothing), the outfit text, the original search results and an optional max price, and it returns the two lists of suggested listings. I wrote the description so someone who never sees my code could still use it. It says that max price is in whole dollars, what the two lists are, and what happens when there is no selected item. The real function in tools.py is imported under a different name so the registered tool doesn't end up calling itself.
+
+In agent.py, run_agent no longer imports suggestions_tool from tools. It now calls it through call_tool, and the trace step is labelled "suggestions_tool (via MCP)". Nothing should look different to the user. The suggestions in the session should still be a dict with the same two keys.
+
+To check it, run python app.py ask 'I want a shirt that is under $20.' --trace. Step 4 of the trace should say suggestions_tool (via MCP) and both suggestion lists should still print.
+
+Here is the output from that run, which is the proof that the second tool is connected. Step 4 now says suggestions_tool (via MCP), and it returned a dict with the same two keys as before, suggested_items_based_on_search and suggested_items_to_help_make_your_outfit. Both lists printed at the end with five items each, so what comes back did not change when the call moved behind MCP. The trace was produced by the trace.step calls in agent.py::run_agent, and the call itself goes through call_tool in mcp_client.py to the server in mcp_server.py.
+
+```
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 1 items: Vintage Polo Shirt — Forest Green
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey there! That forest green Ralph Lauren polo is an incredible find—classic, versatile, and that slightly box…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Scored this forest green Ralph Lauren vintage polo on thredUp for just $18.0. I love leaning into the boxy fit…
+[4] suggestions_tool (via MCP)
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+
+  Found:    Vintage Polo Shirt — Forest Green — $18.0 on thredUp
+
+  Outfit:   Hey there! That forest green Ralph Lauren polo is an incredible find—classic, versatile, and that slightly boxy fit gives it such a cool, effortless vibe. 
+
+Here are two ways to style your new vintage polo using pieces from your wardrobe:
+
+### Outfit 1: Streetwear Edge
+*Play up the boxy fit of the polo with relaxed denim and chunky sneakers for an effortless, cool-girl street style look.*
+
+*   **Top:** Vintage Polo Shirt — Forest Green (New item!)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+*   **Styling Tip:** Leave the polo unbuttoned for a relaxed feel, and let it drape naturally over the baggy jeans. Add the black crossbody bag to pull the monochromatic black-and-white accents together.
+
+### Outfit 2: Elevated Earth Tones
+*Lean into the rich forest green by pairing it with warm neutrals for a minimal, sophisticated look that still feels super comfortable.*
+
+*   **Top:** Vintage Polo Shirt — Forest Green (New item!)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Accessories:** Brown leather belt, Black crossbody bag
+*   **Shoes:** Chunky white sneakers (or swap for black combat boots for a grunge contrast)
+*   **Styling Tip:** Tuck the polo loosely into the wide-leg khaki trousers and cinch your waist with the brown leather belt to anchor the earth tones. It’s a polished outfit that works for brunch, errands, or casual hangouts.
+
+  Fit card: Scored this forest green Ralph Lauren vintage polo on thredUp for just $18.0. I love leaning into the boxy fit by tucking it into wide-leg khaki trousers with a brown belt for an effortless earth-tone moment. It’s that ultimate classic piece you can dress up or down without even trying.
+
+  Suggested items based on your search:
+    - Henley Long Sleeve — Washed Burgundy — $16.0
+    - Oversized Crewneck Sweatshirt — Vintage Navy — $20.0
+    - Vintage Band Tee — Faded Grey — $19.0
+    - Y2K Baby Tee — Butterfly Print — $18.0
+    - Tie-Dye Long Sleeve — Pastel — $17.0
+  Suggested items to help make your outfit:
+    - Straight Leg Khaki Trousers — Olive — $29.0
+    - Straight Leg Black Jeans — Faded — $30.0
+    - Leather Belt — Brown, Braided — $12.0
+    - Wide-Leg Linen Trousers — Natural — $34.0
+    - Vintage Levi's 501 Jeans — Medium Wash — $38.0
+
+1 model calls this session, 1 served from cache, 518 prompt + 68 output tokens
+```
+
+2. Retry with looser constraints
+
+When the first search comes back empty and the query asked for a size, run_agent now searches one more time without the size filter, then tells the user what it dropped. For example: "No listings matched size XXS, so the search was repeated once without the size filter."
+
+I only drop the size. The price cap and the description are never loosened, and it only retries once. If the retry is also empty, the loop stops with the same "no matching listings" message as before.
+
+The retry shows up in three places. The session records what was dropped, the notice carries the message to the user (app.py already prints notices), and the trace gets a second search step labelled "retry without size" with a note saying whether it found anything.
+
+This shouldn't affect criterion 2. The impossible query (designer ballgown size XXS under $5) still finds nothing on the retry, because no listing costs $5 or less, so it still stops before suggest_outfit. The only difference is that its trace now has two search steps instead of one.
+
+I also added a diagnostic scenario to scenarios.py, "empty search retries without size", which searches for a graphic tee in size XXS. None of the tees come in XXS, so it should take the retry path. It isn't one of the five criteria. I haven't measured this yet, since I haven't run the evals since making the change.
+
+3. A second improvement: a stronger test for criterion 4
+
+This came straight from my own diagnosis in What's Still Broken, where I said the criterion 4 test was weak. The scenario used one listing with a null brand five times, so all it could show was that the model didn't invent a brand for that one item. The prompt also already tells the model not to invent a brand, so it was set up to pass.
+
+I only changed the testing, not the criterion. In scenarios.py, the criterion 4 scenario now has a list of queries so each try picks a different listing. Two of the five use listings with no brand: the original bootleg tee, and a color block windbreaker, which is the kind of item a model might label Nike or Adidas on its own. The other three use listings that have a real brand: the Ralph Lauren polo, the Wrangler denim jacket and the Champion track jacket. For those, the fit card has to name the right brand and nothing else.
+
+In run_eval.py I added a brand check that writes one extra line for every try in the log. It shows the brand on the listing, any brand names found in the fit card, and whether the word "null" shows up. The list of brands it looks for is every brand in the listings data plus a short list of well-known ones like Nike, Adidas and Gucci. It doesn't score anything. I still read the log and decide pass or fail myself.
+
+I think this is a better test because a pass on the branded listings now means the card used the right brand, not just that it avoided one, and the windbreaker is there to catch the model bringing in a brand from its own knowledge.
+
+There are two caveats. The search always picks the first result, so each query only tests the listing it selects, and the selected_item line in the log shows which one that was. Also, a word like "Champion" can show up in a card as an ordinary word, so a hit in the brand check has to be read in context.
+
+### Results
+
+I ran python run_eval.py --label stretch (results/run_2026-10-11_1854_stretch.md), five tries per scenario with caching off, using the same format as the other run logs.
+
+| Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
+|---|---|---|---|---|---|---|---|
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Outfit suggestion and fit card use prior state | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card does not invent a brand | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search results stay within the price cap | 5 of 5 | PASS | PASS | FAIL | PASS | PASS | MISSED (4/5) |
+
+The two diagnostic scenarios are not part of the five criteria, so they are not in the table. Both ran five tries with no crashes.
+
+Did the stronger criterion 4 test help? It did not find a failure, and I think that result is more trustworthy than the first one. Before, a 5/5 only meant the model didn't invent a brand for one listing with no brand. Now the five tries use five different listings and the log shows the evidence for each. Both of the null-brand listings came back with no brand in the card, and that includes the color block windbreaker, which I picked because it is the kind of item a model might call a Nike or Adidas. The three branded listings (Ralph Lauren, Wrangler and Champion) each came back with exactly that brand named in the card and no other. The word "null" never showed up. So I'm fairly confident criterion 4 is actually being met and not just passing because of a weak test. The honest limit is that it is still five listings out of forty, and the search picks the first result, so a different item could still behave differently.
+
+Criterion 5 is still missed at 4 of 5, the same as the earlier after run. Try 3 (graphic tee $25 or less) returned a $26 and a $27 listing over the cap. Tries 2 and 4 only passed because every result happened to be under the cap I meant, since the cap was never parsed. That is still the _parse_query problem in agent.py I described in the diagnosis, and I did not fix it in this unit.
+
+The retry worked as intended. For graphic tee size XXS, all five tries found nothing on the first search, searched again without the size, found six listings, and showed the notice saying the size was dropped. The trace shows the second search step with the note "retry: dropped size XXS". Criterion 2 is not affected, because the impossible query still stops before suggest_outfit in all five tries. The only change is that its trace now shows two search steps, and the second one ends with "retry: still empty, stopping".
 
 
 
