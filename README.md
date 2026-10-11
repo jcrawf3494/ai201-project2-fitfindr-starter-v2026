@@ -91,7 +91,7 @@ FitFindr helps users discover secondhand clothing by searching listings with a d
 - **Returns:**
      - a 2-4 sentence caption about the input variables that were given
 - **When it has nothing:**
-     - it should return a descptive message rather than raise an exception or say none or null. 
+     - it should return a descriptive message rather than raise an exception or say none or null. 
 
 ---
 
@@ -424,13 +424,75 @@ that produced it:
 **Happy path**
 
 ```
+python app.py ask 'I want a shirt that is under $20.' --trace         
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 1 items: Vintage Polo Shirt — Forest Green
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey there! That forest green Ralph Lauren polo is an incredible find—classic, versatile, and that slightly box…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: This forest green Ralph Lauren polo brings the ultimate low-effort, high-reward energy to my rotation. Tucked …
+[4] suggestions_tool
+      in:  dict with keys: new_item, outfit, search_results, max_price
+      out: dict with keys: suggested_items_based_on_search, suggested_items_to_help_make_your_outfit
+
+  Found:    Vintage Polo Shirt — Forest Green — $18.0 on thredUp
+
+  Outfit:   Hey there! That forest green Ralph Lauren polo is an incredible find—classic, versatile, and that slightly boxy fit gives it such a cool, effortless vibe. 
+
+Here are two ways to style your new vintage polo using pieces from your wardrobe:
+
+### Outfit 1: Streetwear Edge
+*Play up the boxy fit of the polo with relaxed denim and chunky sneakers for an effortless, cool-girl street style look.*
+
+*   **Top:** Vintage Polo Shirt — Forest Green (New item!)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+*   **Styling Tip:** Leave the polo unbuttoned for a relaxed feel, and let it drape naturally over the baggy jeans. Add the black crossbody bag to pull the monochromatic black-and-white accents together.
+
+### Outfit 2: Elevated Earth Tones
+*Lean into the rich forest green by pairing it with warm neutrals for a minimal, sophisticated look that still feels super comfortable.*
+
+*   **Top:** Vintage Polo Shirt — Forest Green (New item!)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Accessories:** Brown leather belt, Black crossbody bag
+*   **Shoes:** Chunky white sneakers (or swap for black combat boots for a grunge contrast)
+*   **Styling Tip:** Tuck the polo loosely into the wide-leg khaki trousers and cinch your waist with the brown leather belt to anchor the earth tones. It’s a polished outfit that works for brunch, errands, or casual hangouts.
+
+  Fit card: This forest green Ralph Lauren polo brings the ultimate low-effort, high-reward energy to my rotation. Tucked into wide-leg khakis with a brown leather belt, it’s giving rich earth tones and timeless prep. Snagged this gem on thredUp for just $18.0.
+
+  Suggested items based on your search:
+    - Henley Long Sleeve — Washed Burgundy — $16.0
+    - Oversized Crewneck Sweatshirt — Vintage Navy — $20.0
+    - Vintage Band Tee — Faded Grey — $19.0
+    - Y2K Baby Tee — Butterfly Print — $18.0
+    - Tie-Dye Long Sleeve — Pastel — $17.0
+  Suggested items to help make your outfit:
+    - Straight Leg Khaki Trousers — Olive — $29.0
+    - Straight Leg Black Jeans — Faded — $30.0
+    - Leather Belt — Brown, Braided — $12.0
+    - Wide-Leg Linen Trousers — Natural — $34.0
+    - Vintage Levi's 501 Jeans — Medium Wash — $38.0
+
+1 model calls this session, 1 served from cache, 518 prompt + 63 output tokens
 
 ```
 
 **Empty search**
 
 ```
+python app.py ask 'How does a MCP work?' --trace             
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty, stopping
 
+  The search found no matching listings. Try using different description keywords, changing the size, or raising the maximum price.
+
+0 model calls this session
 ```
 
 **On the MCP move:** <!-- what changed in your code, and whether anything

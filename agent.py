@@ -17,8 +17,8 @@ import re
 
 import config
 import trace
+from mcp_client import call_tool
 from tools import (
-    search_listings,
     suggest_outfit,
     create_fit_card,
     suggestions_tool,
@@ -51,6 +51,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "outfit_suggestion": None,   # what suggest_outfit returned
         "fit_card": None,            # what create_fit_card returned
         "suggestions": None,         # similar listings and outfit-completion picks
+        "notice": None,              # non-fatal information for the user
         "error": None,               # set when the run ended early
     }
 
@@ -173,32 +174,102 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
         parsed = _parse_query(query)
         session["parsed"] = parsed
-        results = search_listings(
-            parsed["description"],
-            size=parsed["size"],
-            max_price=parsed["max_price"],
+        search_inputs = {
+            "description": parsed["description"],
+            "size": parsed["size"],
+            "max_price": parsed["max_price"],
+        }
+        results = call_tool(
+            "search_listings",
+            search_inputs,
+        )
+        trace.step(
+            "search_listings (via MCP)",
+            inputs=search_inputs,
+            returned=results,
+            note="branch: empty, stopping" if not results else "",
         )
         session["search_results"] = results
 
         if not results:
             session["error"] = (
-                "No listings match your search. Try changing the description or "
-                "size, or raising the maximum price."
+                "The search found no matching listings. Try using different "
+                "description keywords, changing the size, or raising the "
+                "maximum price."
             )
             return session
 
+        if not wardrobe.get("items"):
+            session["notice"] = (
+                "Your wardrobe is empty, so this suggestion will use general "
+                "styling advice instead of pieces you own. Add wardrobe items "
+                "for personalized outfit combinations."
+            )
+
         selected_item = results[0]
         session["selected_item"] = selected_item
-        session["outfit_suggestion"] = suggest_outfit(selected_item, wardrobe)
-        session["fit_card"] = create_fit_card(
-            session["outfit_suggestion"],
-            selected_item,
+        try:
+            session["outfit_suggestion"] = suggest_outfit(selected_item, wardrobe)
+        except ModelUnavailable as exc:
+            trace.step(
+                "suggest_outfit",
+                inputs={"new_item": selected_item, "wardrobe": wardrobe},
+                returned=f"ModelUnavailable: {exc}",
+            )
+            session["error"] = (
+                "The model is unavailable, so outfit suggestions could not be "
+                f"generated. {exc} Fix the model access issue and try again."
+            )
+            return session
+        trace.step(
+            "suggest_outfit",
+            inputs={"new_item": selected_item, "wardrobe": wardrobe},
+            returned=session["outfit_suggestion"],
         )
+
+        try:
+            session["fit_card"] = create_fit_card(
+                session["outfit_suggestion"],
+                selected_item,
+            )
+        except ModelUnavailable as exc:
+            trace.step(
+                "create_fit_card",
+                inputs={
+                    "outfit": session["outfit_suggestion"],
+                    "new_item": selected_item,
+                },
+                returned=f"ModelUnavailable: {exc}",
+            )
+            session["error"] = (
+                "The model is unavailable, so the fit card could not be "
+                f"generated. {exc} Fix the model access issue and try again."
+            )
+            return session
+        trace.step(
+            "create_fit_card",
+            inputs={
+                "outfit": session["outfit_suggestion"],
+                "new_item": selected_item,
+            },
+            returned=session["fit_card"],
+        )
+
         session["suggestions"] = suggestions_tool(
             selected_item,
             session["outfit_suggestion"],
             search_results=results,
             max_price=parsed["max_price"],
+        )
+        trace.step(
+            "suggestions_tool",
+            inputs={
+                "new_item": selected_item,
+                "outfit": session["outfit_suggestion"],
+                "search_results": results,
+                "max_price": parsed["max_price"],
+            },
+            returned=session["suggestions"],
         )
         return session
 

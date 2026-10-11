@@ -35,18 +35,30 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    {
+        # A matching query checks that the selected item and wardrobe inform
+        # the outfit suggestion and fit card. Criterion 3.
+        "name": "outfit and fit card use prior state",
+        "query": "denim jacket under $50",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        # This query selects a listing whose brand is null, checking that the
+        # fit card does not invent a brand. Five tries test criterion 4.
+        "name": "fit card does not invent a brand",
+        "query": "2003 tour bootleg tee under $30",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # The search must return only listings at or below the requested cap.
+        # Criterion 5.
+        "name": "search results stay within the price cap",
+        "query": "graphic tee under $20",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
 ]
 
 WARDROBES = ("example", "empty")

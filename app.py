@@ -114,6 +114,10 @@ def _ask_one(query, wardrobe, use_trace):
     session = run_agent(query, wardrobe)
 
     print()
+    if session.get("notice"):
+        print(f"  {session['notice']}")
+        print()
+
     if session["error"]:
         print(f"  {session['error']}")
     else:
