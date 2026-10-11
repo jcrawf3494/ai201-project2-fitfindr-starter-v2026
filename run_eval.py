@@ -37,7 +37,16 @@ import config
 import scenarios as scenario_module
 
 
-def run_once(scenario, use_trace=True):
+def query_for(scenario, attempt):
+    """The query for a given try (1-based). A scenario with a `queries` list uses
+    a different one each try; otherwise every try uses `query`."""
+    queries = scenario.get("queries")
+    if queries:
+        return queries[(attempt - 1) % len(queries)]
+    return scenario["query"]
+
+
+def run_once(scenario, attempt=1, use_trace=True):
     """One scenario, one try. Returns everything worth recording."""
     from agent import run_agent
     from utils.data_loader import get_example_wardrobe, get_empty_wardrobe
@@ -50,9 +59,10 @@ def run_once(scenario, use_trace=True):
     if use_trace:
         trace_module.start_trace()
 
-    record = {"error": None, "session": None, "trace": "", "crashed": None}
+    query = query_for(scenario, attempt)
+    record = {"error": None, "session": None, "trace": "", "crashed": None, "query": query}
     try:
-        record["session"] = run_agent(scenario["query"], wardrobe)
+        record["session"] = run_agent(query, wardrobe)
     except Exception as exc:  # noqa: BLE001 — a crash is a result worth logging
         record["crashed"] = f"{type(exc).__name__}: {exc}"
         record["traceback"] = traceback.format_exc()
@@ -95,18 +105,19 @@ def main():
 
         tries = []
         for attempt in range(1, args.tries + 1):
-            record = run_once(scenario)
+            record = run_once(scenario, attempt)
             tries.append(record)
+            shown = f" [{record['query']}]" if scenario.get("queries") else ""
 
             if record["crashed"]:
-                print(f"  try {attempt}: CRASHED — {record['crashed']}")
+                print(f"  try {attempt}{shown}: CRASHED — {record['crashed']}")
             else:
                 session = record["session"] or {}
                 if session.get("error"):
-                    print(f"  try {attempt}: stopped early — {str(session['error'])[:60]}")
+                    print(f"  try {attempt}{shown}: stopped early — {str(session['error'])[:60]}")
                 else:
                     card = (session.get("fit_card") or "")
-                    print(f"  try {attempt}: completed — fit card {len(card)} chars")
+                    print(f"  try {attempt}{shown}: completed — fit card {len(card)} chars")
 
         rows.append({"scenario": scenario, "tries": tries})
         print()
@@ -186,11 +197,15 @@ def write_report(rows, args):
 
             session = record["session"] or {}
             item = session.get("selected_item") or {}
+            results = session.get("search_results") or []
             lines += [
+                f"- query used: `{record.get('query', scenario['query'])}`",
+                f"- parsed: {session.get('parsed')}",
                 f"- stopped early: {'yes — ' + str(session.get('error')) if session.get('error') else 'no'}",
                 f"- selected_item: {item.get('title', '(none)')}"
                 + (f" (${item.get('price')}, {item.get('platform')})" if item else ""),
-                f"- search_results: {len(session.get('search_results') or [])}",
+                f"- search_results: {len(results)}",
+                f"- result prices: {[r.get('price') for r in results]}",
                 "",
             ]
             if session.get("outfit_suggestion"):

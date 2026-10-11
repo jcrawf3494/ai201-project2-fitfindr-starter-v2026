@@ -53,9 +53,19 @@ SCENARIOS = [
     },
     {
         # The search must return only listings at or below the requested cap.
-        # Criterion 5.
+        # Criterion 5. Each try uses a DIFFERENT phrasing of a price cap, since
+        # the price filter is deterministic and repeating one query five times
+        # is one data point. Several phrasings are ones _parse_query has no
+        # pattern for, so a miss shows up as max_price None in the report.
         "name": "search results stay within the price cap",
         "query": "graphic tee under $20",
+        "queries": [
+            "graphic tee under $20",             # baseline: the phrasing the parser knows
+            "graphic tee under forty dollars",   # number written out as a word
+            "graphic tee $25 or less",           # cap after the number
+            "graphic tee, budget of 30",         # no keyword the parser recognises
+            "graphic tee under $1",              # cap below every listing: zero results
+        ],
         "wardrobe": "example",
         "criterion": 5,
     },
@@ -70,6 +80,9 @@ def validate() -> list[str]:
     for i, scenario in enumerate(SCENARIOS, 1):
         if not scenario.get("query", "").strip():
             problems.append(f"scenario {i} has no query")
+        for q in scenario.get("queries", []):
+            if not str(q).strip():
+                problems.append(f"scenario {i} has an empty entry in queries")
         if scenario.get("wardrobe") not in WARDROBES:
             problems.append(
                 f"scenario {i} has wardrobe {scenario.get('wardrobe')!r} — "

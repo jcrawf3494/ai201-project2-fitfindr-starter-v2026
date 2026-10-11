@@ -405,13 +405,18 @@ that produced it:
 
 **Diagnoses**
 
-So all of the evals that I ran passed with perfect scores of 5/5 on each of the different criteria. This is can be as much of a red flad when doing testing and evaluations almost as much as if there were multiple failures. Because it usually means that something is wrong with the tests or with the criteria. So I initially rana  second eval. With the first one being run_2026-10-07_2002_before.md and then run_2026-10-11_1555_before.md being the most recent one. Both run_eval.py results showed the same results. So I initially looked at the criteria and the tests to see if I had specifically designed to be passed. The criteria looked okay. But the issue did turn out to be the tests. It looks like for each of the tests or evaluation it was using the same input for each try. For example for every try it gave
- the Query: `graphic tee under $20`
+So all of the evals that I ran passed with perfect scores of 5/5 on each of the different criteria. This can be just as much of a red flag when doing testing and evaluations as multiple failures would be, because it usually means that something is wrong with the tests or with the criteria. So I ran a second eval. The first one was run_2026-10-07_2002_before.md and the most recent one was run_2026-10-11_1555_before.md. Both run_eval.py results showed the same results. So I initially looked at the criteria and the tests to see if I had specifically designed them to be passed. The criteria looked okay, but the issue did turn out to be the tests. For each of the tests or evaluations, it was using the same input for each try. For example, for every try it gave:
+
+- Query: `graphic tee under $20`
 - Wardrobe: example
-Which caused the model to pull the same information for every test which was 
-selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
+
+This caused the model to pull the same information for every try, which was:
+
+- selected_item: Vintage Band Tee — Faded Grey ($19.0, depop)
 - search_results: 3
-I then looked at the other tries for the evals that were run and it did the same thing for every test. And try and while for some of the criterions was needed to test, for example the fit card needed to have the item more than once, but the other onces where it is looking to stay under pricing limits for instance would need to have multiple different inputs tested. And try to have edge cases like uses forty instead of 40 or spelling issues etc. So while the tests TECHNICALLY passed they were tests that were not set up correctly and will need to be run again with updates to the testing to be able to get a good ideas if the application is actually met the criterion or not. 
+
+I then looked at the other tries for the evals that were run, and it did the same thing for every one. For some of the criteria this is needed. For example, the fit card needs the same item run more than once. But the criteria that check things like staying under pricing limits need multiple different inputs tested, including edge cases like using "forty" instead of "40" or spelling issues. So while the tests technically passed, they were not set up correctly and will need to be run again with updates to the testing, to get a good idea of whether the application actually meets the criterion or not.
+
 ---
 
 ## Loop Trace
@@ -518,7 +523,28 @@ full. -->
 
 **What I changed:**
 
+What I changed
+
+So I decided to just focus on making a better test for criterion 5 since the instruction said to focus on just one change. So the changes I made were in scenarios.py and run_eval.py to change how the tests were actually run. 
+
+The criterion 5 scenario now has a queries list, so each of the five tries gets a different query:
+graphic tee under $20 is the baseline, using the phrasing the parser knows.
+graphic tee under forty dollars writes the number as a word.
+graphic tee $25 or less puts the cap after the number.
+graphic tee, budget of 30 uses no keyword the parser recognizes.
+graphic tee under $1 sets a cap below every listing, so it should return zero results.
+validate() now rejects an empty entry in queries.
+run_eval.py
+
+A new query_for(scenario, attempt) picks the query for each try. A scenario with queries uses a different one per try. Every other scenario still repeats its single query, so criteria 1–4 behave exactly as before.
+run_once takes the attempt number and stores the query it used.
+The console output shows the query for each try on scenarios that have a queries list.
+The report now logs, for every try, the query used, the parsed values (including max_price), and the prices of all returned results.
+
+
 **Which failure it was meant to fix:**
+
+So based of the testing there were not "failures" of the criteria  or criterion that needed fixing but rather the test for those actually needed to be updated. So the failure was a test that was not extensive and basically to perfect for the scenario that it was given. So I tried to create a better test. 
 
 ### Run Log — After
 
