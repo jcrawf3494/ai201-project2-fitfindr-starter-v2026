@@ -1015,6 +1015,9 @@ So if there was more time I would go in and update the testing for these to offe
 
 ---
 
+<!-- ═══════════════════════STRETCH FEATURES ═══
+     ═══════════════════════════════════════════════════════════════════ -->
+
 ## STRETCH FEATURES
 
 Three stretch features were added. None of them changes `criteria.md`.
@@ -1089,29 +1092,29 @@ Here are two ways to style your new vintage polo using pieces from your wardrobe
 
 2. Retry with looser constraints
 
-When the first search comes back empty and the query asked for a size, run_agent now searches one more time without the size filter, then tells the user what it dropped. For example: "No listings matched size XXS, so the search was repeated once without the size filter."
+     When the first search comes back empty and the query asked for a size, run_agent now searches one more time without the size filter, then tells the user what it dropped. For example: "No listings matched size XXS, so the search was repeated once without the size filter."
 
-I only drop the size. The price cap and the description are never loosened, and it only retries once. If the retry is also empty, the loop stops with the same "no matching listings" message as before.
+     I only drop the size. The price cap and the description are never loosened, and it only retries once. If the retry is also empty, the loop stops with the same "no matching listings" message as before.
 
-The retry shows up in three places. The session records what was dropped, the notice carries the message to the user (app.py already prints notices), and the trace gets a second search step labelled "retry without size" with a note saying whether it found anything.
+     The retry shows up in three places. The session records what was dropped, the notice carries the message to the user (app.py already prints notices), and the trace gets a second search step labelled "retry without size" with a note saying whether it found anything.
 
-This shouldn't affect criterion 2. The impossible query (designer ballgown size XXS under $5) still finds nothing on the retry, because no listing costs $5 or less, so it still stops before suggest_outfit. The only difference is that its trace now has two search steps instead of one.
+     This shouldn't affect criterion 2. The impossible query (designer ballgown size XXS under $5) still finds nothing on the retry, because no listing costs $5 or less, so it still stops before suggest_outfit. The only difference is that its trace now has two search steps instead of one.
 
-I also added a diagnostic scenario to scenarios.py, "empty search retries without size", which searches for a graphic tee in size XXS. None of the tees come in XXS, so it should take the retry path. It isn't one of the five criteria. I haven't measured this yet, since I haven't run the evals since making the change.
+     I also added a diagnostic scenario to scenarios.py, "empty search retries without size", which searches for a graphic tee in size XXS. None of the tees come in XXS, so it should take the retry path. It isn't one of the five criteria. 
 
 3. A second improvement: a stronger test for criterion 4
 
-This came straight from my own diagnosis in What's Still Broken, where I said the criterion 4 test was weak. The scenario used one listing with a null brand five times, so all it could show was that the model didn't invent a brand for that one item. The prompt also already tells the model not to invent a brand, so it was set up to pass.
+     This came straight from my own diagnosis in What's Still Broken, where I said the criterion 4 test was weak. The scenario used one listing with a null brand five times, so all it could show was that the model didn't invent a brand for that one item. The prompt also already tells the model not to invent a brand, so it was set up to pass.
 
-I only changed the testing, not the criterion. In scenarios.py, the criterion 4 scenario now has a list of queries so each try picks a different listing. Two of the five use listings with no brand: the original bootleg tee, and a color block windbreaker, which is the kind of item a model might label Nike or Adidas on its own. The other three use listings that have a real brand: the Ralph Lauren polo, the Wrangler denim jacket and the Champion track jacket. For those, the fit card has to name the right brand and nothing else.
+     I only changed the testing, not the criterion. In scenarios.py, the criterion 4 scenario now has a list of queries so each try picks a different listing. Two of the five use listings with no brand: the original bootleg tee, and a color block windbreaker, which is the kind of item a model might label Nike or Adidas on its own. The other three use listings that have a real brand: the Ralph Lauren polo, the Wrangler denim jacket and the Champion track jacket. For those, the fit card has to name the right brand and nothing else.
 
-In run_eval.py I added a brand check that writes one extra line for every try in the log. It shows the brand on the listing, any brand names found in the fit card, and whether the word "null" shows up. The list of brands it looks for is every brand in the listings data plus a short list of well-known ones like Nike, Adidas and Gucci. It doesn't score anything. I still read the log and decide pass or fail myself.
+     In run_eval.py I added a brand check that writes one extra line for every try in the log. It shows the brand on the listing, any brand names found in the fit card, and whether the word "null" shows up. The list of brands it looks for is every brand in the listings data plus a short list of well-known ones like Nike, Adidas and Gucci. It doesn't score anything. I still read the log and decide pass or fail myself.
 
-I think this is a better test because a pass on the branded listings now means the card used the right brand, not just that it avoided one, and the windbreaker is there to catch the model bringing in a brand from its own knowledge.
+     I think this is a better test because a pass on the branded listings now means the card used the right brand, not just that it avoided one, and the windbreaker is there to catch the model bringing in a brand from its own knowledge.
 
-There are two caveats. The search always picks the first result, so each query only tests the listing it selects, and the selected_item line in the log shows which one that was. Also, a word like "Champion" can show up in a card as an ordinary word, so a hit in the brand check has to be read in context.
+     There are two caveats. The search always picks the first result, so each query only tests the listing it selects, and the selected_item line in the log shows which one that was. Also, a word like "Champion" can show up in a card as an ordinary word, so a hit in the brand check has to be read in context.
 
-### Results
+### Results for stretch features. 
 
 I ran python run_eval.py --label stretch (results/run_2026-10-11_1854_stretch.md), five tries per scenario with caching off, using the same format as the other run logs.
 
